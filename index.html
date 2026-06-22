@@ -1,1 +1,1933 @@
-xx
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="BusBuddy">
+  <meta name="theme-color" content="#FF5B36">
+  <link rel="manifest" href="manifest.json">
+  <title>BusBuddy 🚌</title>
+  <style>
+/* ── RESET ─────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#F2F4F8}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+     color:#1A1A2E;-webkit-font-smoothing:antialiased;overscroll-behavior:none;user-select:none}
+button{cursor:pointer;border:none;background:none;font-family:inherit}
+input,select{font-family:inherit;-webkit-appearance:none}
+a{color:inherit;text-decoration:none}
+.hidden{display:none!important}
+
+/* ── TOKENS ─────────────────────────────────── */
+:root{
+  --brand:#FF5B36; --brand-dk:#E04A28; --brand-lt:#FFE8E3; --brand-glow:rgba(255,91,54,.28);
+  --bg:#F2F4F8; --surf:#FFFFFF; --surf2:#F8F9FC;
+  --tx:#1A1A2E; --tx2:#64748B; --tx3:#9CA3AF; --txinv:#FFFFFF;
+  --arriving:#EF4444; --soon:#F59E0B; --okay:#22C55E;
+  --sos:#DC2626; --sos-glow:rgba(220,38,38,.32);
+  --bdr:rgba(0,0,0,.07); --bdr2:rgba(0,0,0,.13);
+  --shd:0 2px 12px rgba(0,0,0,.09); --shd-card:0 4px 20px rgba(0,0,0,.10);
+  --r-sm:10px; --r-md:16px; --r-lg:22px; --r-xl:28px; --pill:999px;
+  --nav-h:70px; --hdr-h:58px;
+  --safe-b:env(safe-area-inset-bottom,12px); --safe-t:env(safe-area-inset-top,0px)
+}
+
+/* ── SCREEN SYSTEM ──────────────────────────── */
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--bg);overflow:hidden}
+.scroll-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 28px}
+
+/* ── HEADERS ────────────────────────────────── */
+.app-hdr{display:flex;align-items:center;justify-content:space-between;
+  height:calc(var(--hdr-h) + var(--safe-t));padding:var(--safe-t) 14px 0;
+  background:var(--surf);border-bottom:1px solid var(--bdr);flex-shrink:0}
+.hdr-l{display:flex;align-items:center;gap:10px}
+.app-logo{font-size:28px;line-height:1}
+.app-name{font-size:18px;font-weight:900;color:var(--brand);letter-spacing:-.5px}
+.app-time{font-size:11px;color:var(--tx3);font-weight:500;margin-top:1px}
+
+.sub-hdr{display:flex;align-items:center;height:calc(var(--hdr-h) + var(--safe-t));
+  padding:var(--safe-t) 14px 0;background:var(--surf);border-bottom:1px solid var(--bdr);
+  flex-shrink:0;gap:12px}
+.sub-ttl{flex:1;font-size:17px;font-weight:800;color:var(--tx);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.back-btn{font-size:15px;font-weight:700;color:var(--brand);padding:8px 0;
+  white-space:nowrap;flex-shrink:0}
+
+/* ── SOS BUTTON ─────────────────────────────── */
+.sos-btn{width:42px;height:42px;border-radius:50%;background:var(--sos);
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+  flex-shrink:0;animation:sos-pulse 2.8s infinite}
+.sos-btn-sm{width:36px;height:36px;border-radius:50%;background:var(--sos);
+  display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+@keyframes sos-pulse{
+  0%,100%{box-shadow:0 0 0 0 var(--sos-glow)}
+  60%{box-shadow:0 0 0 10px transparent}
+}
+
+/* ── BOTTOM NAV ─────────────────────────────── */
+.bottom-nav{position:absolute;bottom:0;left:0;right:0;
+  height:calc(var(--nav-h) + var(--safe-b));padding-bottom:var(--safe-b);
+  background:var(--surf);border-top:1px solid var(--bdr);display:flex;
+  box-shadow:0 -3px 12px rgba(0,0,0,.06);z-index:10}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:3px;color:var(--tx3);padding:8px 0;transition:color .15s}
+.nav-btn.active{color:var(--brand)}
+.nav-icon{font-size:22px;line-height:1}
+.nav-lbl{font-size:10px;font-weight:700;letter-spacing:.3px}
+
+/* ── ONBOARDING ─────────────────────────────── */
+#screen-onboard{background:linear-gradient(150deg,#FF8A70 0%,#FF5B36 45%,#D93F20 100%);
+  overflow-y:auto;display:flex;flex-direction:column}
+.ob-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:calc(32px + var(--safe-t)) 24px calc(32px + var(--safe-b));min-height:100%}
+.ob-step{width:100%;max-width:400px;display:flex;flex-direction:column;align-items:center;gap:18px}
+.ob-icon{font-size:72px;line-height:1;animation:bob 3s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.ob-title{font-size:28px;font-weight:900;color:white;text-align:center;
+  text-shadow:0 2px 8px rgba(0,0,0,.15)}
+.ob-sub{font-size:16px;color:rgba(255,255,255,.85);text-align:center;line-height:1.5}
+.ob-progress{display:flex;gap:10px;margin-top:6px}
+.ob-dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.3);transition:all .3s}
+.ob-dot.active{background:white;transform:scale(1.25)}
+
+/* ── FORMS — onboarding context ─────────────── */
+.ob-step .fld-lbl{font-size:11px;font-weight:800;letter-spacing:.8px;
+  text-transform:uppercase;color:rgba(255,255,255,.8)}
+.ob-step .fld-inp{width:100%;background:rgba(255,255,255,.18);
+  border:2px solid rgba(255,255,255,.28);border-radius:var(--r-md);
+  padding:14px 16px;font-size:20px;font-weight:700;color:white;outline:none;
+  transition:border-color .2s}
+.ob-step .fld-inp::placeholder{color:rgba(255,255,255,.45)}
+.ob-step .fld-inp:focus{border-color:rgba(255,255,255,.65)}
+.ob-step .fld-inp.center{text-align:center;letter-spacing:8px}
+
+/* ── FORMS — light context ──────────────────── */
+.fld-group{width:100%;display:flex;flex-direction:column;gap:6px}
+.fld-lbl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--tx2)}
+.fld-inp{width:100%;background:var(--surf);border:1.5px solid var(--bdr2);
+  border-radius:var(--r-sm);padding:12px 14px;font-size:15px;color:var(--tx);
+  outline:none;transition:border-color .2s}
+.fld-inp:focus{border-color:var(--brand)}
+.fld-inp::placeholder{color:var(--tx3)}
+select.fld-inp{cursor:pointer}
+
+/* ── BUTTONS ────────────────────────────────── */
+.btn-primary{background:linear-gradient(135deg,var(--brand),var(--brand-dk));
+  color:white;border-radius:var(--pill);padding:15px 26px;font-size:17px;font-weight:800;
+  box-shadow:0 4px 14px var(--brand-glow);transition:transform .1s;letter-spacing:.1px}
+.btn-primary:active{transform:scale(.97)}
+.btn-primary.full{width:100%;text-align:center}
+.btn-secondary{background:var(--surf2);color:var(--tx);border:1.5px solid var(--bdr2);
+  border-radius:var(--pill);padding:12px 22px;font-size:15px;font-weight:600}
+.btn-secondary:active{background:var(--bdr)}
+.btn-add{width:100%;background:var(--surf);border:2px dashed var(--brand);
+  border-radius:var(--r-md);padding:15px;font-size:15px;font-weight:700;
+  color:var(--brand);transition:background .15s}
+.btn-add:active{background:var(--brand-lt)}
+
+/* Onboarding button override */
+.ob-step .btn-primary{width:100%;background:rgba(255,255,255,.22);
+  border:2px solid rgba(255,255,255,.42);box-shadow:none;font-size:18px;padding:16px 28px}
+.ob-step .btn-primary:active{background:rgba(255,255,255,.32)}
+
+/* ── EMOJI GRID ─────────────────────────────── */
+.emoji-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;width:100%}
+.emoji-item{aspect-ratio:1;border-radius:var(--r-sm);font-size:22px;
+  display:flex;align-items:center;justify-content:center;
+  border:2.5px solid transparent;background:rgba(255,255,255,.14);
+  cursor:pointer;transition:all .15s}
+.emoji-item.sel{border-color:white;background:rgba(255,255,255,.32);transform:scale(1.08)}
+.light-emojis .emoji-item{background:var(--surf2);border-color:transparent}
+.light-emojis .emoji-item.sel{border-color:var(--brand);background:var(--brand-lt)}
+
+/* ── HOME SCREEN ────────────────────────────── */
+#screen-home .scroll-area{padding-bottom:calc(var(--nav-h) + var(--safe-b) + 14px)}
+.home-greeting{font-size:20px;font-weight:800;color:var(--tx);margin-bottom:12px;line-height:1.3}
+.demo-banner{background:#FFFBEB;border:1.5px solid #F59E0B;border-radius:var(--r-md);
+  padding:10px 14px;font-size:13px;font-weight:600;color:#78350F;margin-bottom:12px;line-height:1.4}
+
+.dest-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.dest-card{border-radius:var(--r-lg);padding:20px 16px 18px;display:flex;flex-direction:column;
+  gap:7px;min-height:130px;cursor:pointer;box-shadow:var(--shd-card);
+  transition:transform .12s;position:relative;overflow:hidden;text-align:left;border:none}
+.dest-card:active{transform:scale(.95)}
+.card-shine{position:absolute;top:-40%;right:-10%;width:70%;height:70%;
+  background:rgba(255,255,255,.13);border-radius:50%;pointer-events:none}
+.card-emoji{font-size:36px;line-height:1}
+.card-label{font-size:17px;font-weight:900;color:white;line-height:1.2;
+  text-shadow:0 1px 3px rgba(0,0,0,.15)}
+.card-bus{font-size:12px;color:rgba(255,255,255,.72);font-weight:600}
+/* Destination card gradients */
+.c-home   {background:linear-gradient(140deg,#4F46E5,#7C3AED)}
+.c-school {background:linear-gradient(140deg,#0EA5E9,#2563EB)}
+.c-grandma{background:linear-gradient(140deg,#D97706,#F59E0B)}
+.c-tuition{background:linear-gradient(140deg,#059669,#10B981)}
+.c-0{background:linear-gradient(140deg,#DC2626,#EF4444)}
+.c-1{background:linear-gradient(140deg,#0891B2,#06B6D4)}
+.c-2{background:linear-gradient(140deg,#7C3AED,#A855F7)}
+.c-3{background:linear-gradient(140deg,#065F46,#10B981)}
+
+.empty-state{display:flex;flex-direction:column;align-items:center;gap:12px;
+  padding:56px 24px;text-align:center}
+.empty-icon{font-size:56px}
+.empty-state h3{font-size:18px;font-weight:800}
+.empty-state p{font-size:15px;color:var(--tx2);line-height:1.5}
+
+/* ── ARRIVAL SCREEN ─────────────────────────── */
+.stop-card{background:var(--surf);border-radius:var(--r-md);padding:14px 16px;
+  display:flex;align-items:center;gap:12px;margin-bottom:16px;box-shadow:var(--shd)}
+.sc-icon{font-size:22px;flex-shrink:0}
+.sc-lbl{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--tx3)}
+.sc-name{font-size:16px;font-weight:800;color:var(--tx);margin-top:2px}
+.sc-sub{font-size:12px;color:var(--tx2);margin-top:1px}
+.sc-change{margin-left:auto;flex-shrink:0;background:var(--surf2);border:1.5px solid var(--bdr2);
+  border-radius:var(--pill);padding:5px 12px;font-size:12px;font-weight:700;color:var(--brand)}
+.sec-lbl{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;
+  color:var(--tx3);margin-bottom:10px}
+
+/* ── LED ARRIVAL CARDS — signature element ─── */
+.arr-card{background:#0D1821;border-radius:var(--r-md);padding:15px 17px;margin-bottom:10px;
+  border:1px solid rgba(255,255,255,.06);cursor:pointer;position:relative;overflow:hidden;
+  transition:opacity .15s}
+.arr-card:active{opacity:.82}
+.arr-card::before{content:'';position:absolute;top:0;left:0;right:0;
+  height:2.5px;background:var(--ac,#22C55E)}
+.arr-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.arr-bus-no{font-size:38px;font-weight:900;color:white;letter-spacing:-1.5px;line-height:1;
+  font-variant-numeric:tabular-nums}
+.arr-chip{font-size:17px;font-weight:800;color:white;background:var(--ac,#22C55E);
+  border-radius:8px;padding:5px 12px;white-space:nowrap}
+.arr-chip.arriving{background:var(--arriving)}
+.arr-chip.soon{background:var(--soon);color:var(--tx)}
+.arr-chip.okay{background:var(--okay)}
+.arr-chip.na{background:rgba(255,255,255,.12);color:rgba(255,255,255,.45)}
+.arr-bot{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+.arr-type{font-size:12px;color:rgba(255,255,255,.38)}
+.arr-next{font-size:11px;color:rgba(255,255,255,.28)}
+
+.board-btn{width:100%;background:linear-gradient(135deg,#22C55E,#15803D);
+  color:white;border-radius:var(--pill);padding:17px 24px;font-size:18px;font-weight:900;
+  box-shadow:0 4px 16px rgba(34,197,94,.36);margin-top:16px;transition:transform .1s}
+.board-btn:active{transform:scale(.97)}
+.arr-tools{display:flex;gap:10px;margin-top:10px}
+.btn-tool{flex:1;background:var(--surf);border:1.5px solid var(--bdr2);border-radius:var(--r-md);
+  padding:11px 8px;font-size:13px;font-weight:600;color:var(--tx2)}
+.btn-tool:active{background:var(--surf2)}
+.arr-loading{text-align:center;padding:48px 24px;color:var(--tx3);font-size:15px;line-height:1.7}
+
+/* ── JOURNEY SCREEN ─────────────────────────── */
+.j-header{background:linear-gradient(135deg,var(--brand),var(--brand-dk));
+  padding:calc(var(--safe-t) + 16px) 16px 16px;
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.j-info{display:flex;align-items:center;gap:12px}
+.j-icon{font-size:34px;line-height:1}
+.j-bus{font-size:26px;font-weight:900;color:white;letter-spacing:-1px}
+.j-lbl{font-size:13px;color:rgba(255,255,255,.8);font-weight:600;margin-top:2px}
+
+.stop-counter{background:var(--surf);border-radius:var(--r-lg);padding:22px 20px;
+  margin-bottom:14px;display:flex;flex-direction:column;align-items:center;gap:16px;
+  box-shadow:var(--shd-card)}
+.stop-dots{display:flex;align-items:center;width:100%;justify-content:center;flex-wrap:nowrap}
+.s-dot{width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,.10);flex-shrink:0;transition:all .3s}
+.s-dot.passed{background:var(--brand)}
+.s-dot.here{background:var(--okay);transform:scale(1.6);box-shadow:0 0 0 5px rgba(34,197,94,.22)}
+.s-line{flex:1;height:3px;background:var(--bdr2);max-width:28px;transition:background .3s}
+.s-line.passed{background:var(--brand)}
+.s-ellip{font-size:14px;color:var(--tx3);padding:0 3px;flex-shrink:0}
+.count-big{font-size:52px;font-weight:900;color:var(--tx);letter-spacing:-3px;line-height:1}
+.count-lbl{font-size:16px;font-weight:600;color:var(--tx2);margin-top:2px}
+
+.j-stop-card{background:var(--surf);border-radius:var(--r-md);padding:14px 16px;
+  margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.j-stop-card.next-stop{border-left:4px solid var(--okay)}
+.j-stop-card.dest-stop{border-left:4px solid var(--brand)}
+.j-stop-lbl{font-size:10px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.8px;color:var(--tx3);margin-bottom:3px}
+.j-stop-name{font-size:18px;font-weight:800;color:var(--tx)}
+.j-stop-sub{font-size:13px;color:var(--tx2);margin-top:2px}
+
+.j-alert{background:#FFFBEB;border:1.5px solid #F59E0B;border-radius:var(--r-md);
+  padding:13px 15px;display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.j-alert.urgent{background:#FEF2F2;border-color:var(--arriving)}
+.j-alert-icon{font-size:28px;flex-shrink:0}
+.j-alert-text{font-size:16px;font-weight:800;color:#78350F}
+.j-alert.urgent .j-alert-text{color:#991B1B}
+
+.btn-tap{width:100%;background:var(--surf);border:2px solid var(--bdr2);border-radius:var(--r-md);
+  padding:17px;font-size:16px;font-weight:800;color:var(--tx);margin-bottom:10px}
+.btn-tap:active{background:var(--surf2)}
+.j-footer{padding:10px 14px calc(10px + var(--safe-b));flex-shrink:0}
+.sos-big{width:100%;background:linear-gradient(135deg,#DC2626,#991B1B);color:white;
+  border-radius:var(--r-md);padding:18px;font-size:18px;font-weight:900;
+  box-shadow:0 4px 18px rgba(220,38,38,.32);letter-spacing:1px;transition:transform .1s}
+.sos-big:active{transform:scale(.98)}
+
+/* ── AI CHAT ────────────────────────────────── */
+#screen-ai{display:flex;flex-direction:column}
+.chat-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:14px;display:flex;flex-direction:column;gap:12px}
+.chat-msg{max-width:82%;padding:12px 15px;border-radius:var(--r-lg);
+  font-size:16px;font-weight:500;line-height:1.5}
+.chat-msg.ai{background:var(--surf);color:var(--tx);align-self:flex-start;
+  border-bottom-left-radius:5px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.chat-msg.user{background:linear-gradient(135deg,var(--brand),var(--brand-dk));
+  color:white;align-self:flex-end;border-bottom-right-radius:5px}
+.chat-thinking{align-self:flex-start;background:var(--surf);border-radius:var(--r-lg);
+  border-bottom-left-radius:5px;padding:13px 17px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.dot-flash{display:flex;gap:5px;align-items:center}
+.dot-flash span{width:7px;height:7px;border-radius:50%;background:var(--tx3);
+  animation:blink 1.2s infinite both}
+.dot-flash span:nth-child(2){animation-delay:.2s}
+.dot-flash span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
+.chat-opts{padding:6px 14px 10px;display:flex;flex-direction:column;gap:8px;flex-shrink:0}
+.chat-opt{background:var(--surf);border:2px solid var(--brand);border-radius:var(--pill);
+  padding:13px 20px;font-size:16px;font-weight:700;color:var(--brand);
+  text-align:center;transition:all .15s}
+.chat-opt:active{background:var(--brand);color:white}
+.chat-type-row{display:flex;gap:10px;
+  padding:8px 14px calc(8px + var(--safe-b));
+  border-top:1px solid var(--bdr);background:var(--surf);flex-shrink:0}
+.chat-type-inp{flex:1;background:var(--surf2);border:1.5px solid var(--bdr2);
+  border-radius:var(--pill);padding:12px 16px;font-size:15px;color:var(--tx);outline:none}
+.chat-type-inp:focus{border-color:var(--brand)}
+.chat-send{background:var(--brand);color:white;border-radius:var(--pill);
+  padding:12px 18px;font-size:15px;font-weight:700;flex-shrink:0}
+
+/* ── PARENT SETUP ───────────────────────────── */
+#parent-pin-view{flex:1;display:flex;flex-direction:column;
+  background:linear-gradient(150deg,#FF8A70 0%,#FF5B36 45%,#D93F20 100%);position:relative}
+.pin-back{position:absolute;top:calc(14px + var(--safe-t));left:14px;
+  background:rgba(255,255,255,.18);color:white;border-radius:var(--pill);
+  padding:8px 15px;font-size:14px;font-weight:700}
+.pin-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:80px 32px calc(40px + var(--safe-b));gap:16px}
+.pin-icon{font-size:56px}
+.pin-title{font-size:26px;font-weight:900;color:white}
+.pin-sub{font-size:15px;color:rgba(255,255,255,.8);text-align:center}
+.pin-dots{display:flex;gap:15px;margin:6px 0}
+.pin-dots span{width:20px;height:20px;border-radius:50%;
+  border:3px solid rgba(255,255,255,.4);transition:all .2s}
+.pin-dots span.filled{background:white;border-color:white}
+.pin-pad{display:grid;grid-template-columns:repeat(3,70px);gap:13px}
+.pin-key{width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,.15);
+  border:2px solid rgba(255,255,255,.22);font-size:24px;font-weight:800;
+  color:white;display:flex;align-items:center;justify-content:center;transition:background .1s}
+.pin-key:active{background:rgba(255,255,255,.3)}
+.pin-key.del{font-size:18px}
+.pin-key.empty{visibility:hidden;pointer-events:none}
+.pin-err{font-size:13px;font-weight:700;color:#FEE2E2;text-align:center}
+
+#parent-main-view{flex:1;display:flex;flex-direction:column}
+.p-tabs{display:flex;overflow-x:auto;padding:11px 14px 0;gap:2px;
+  background:var(--surf);border-bottom:1px solid var(--bdr);flex-shrink:0;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none}
+.p-tabs::-webkit-scrollbar{display:none}
+.ptab{padding:9px 16px;font-size:13px;font-weight:700;color:var(--tx3);
+  border-bottom:3px solid transparent;white-space:nowrap;transition:all .15s}
+.ptab.active{color:var(--brand);border-bottom-color:var(--brand)}
+.ptab-content{padding:17px 15px;display:flex;flex-direction:column;gap:14px}
+.sec-title{font-size:16px;font-weight:800;color:var(--tx)}
+.sec-desc{font-size:13px;color:var(--tx2);line-height:1.5}
+.api-box{background:var(--surf);border-radius:var(--r-md);padding:15px;
+  border:1px solid var(--bdr);display:flex;flex-direction:column;gap:10px}
+.guide-link{font-size:13px;font-weight:600;color:var(--brand)}
+.dest-list{display:flex;flex-direction:column;gap:10px}
+.dest-item{background:var(--surf);border-radius:var(--r-md);padding:13px;
+  display:flex;align-items:center;gap:12px;border:1px solid var(--bdr);
+  box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.di-emoji{font-size:28px}
+.di-info{flex:1}
+.di-label{font-size:15px;font-weight:800;color:var(--tx)}
+.di-sub{font-size:12px;color:var(--tx3);margin-top:1px}
+.di-btns{display:flex;gap:8px}
+.di-btn{width:33px;height:33px;border-radius:50%;background:var(--surf2);
+  border:1px solid var(--bdr2);font-size:13px;display:flex;align-items:center;justify-content:center}
+
+/* ── MODAL (bottom sheet) ───────────────────── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.48);
+  display:flex;align-items:flex-end;z-index:50}
+.modal-sheet{width:100%;background:var(--surf);border-radius:var(--r-xl) var(--r-xl) 0 0;
+  padding:22px 18px calc(22px + var(--safe-b));max-height:90vh;
+  overflow-y:auto;display:flex;flex-direction:column;gap:13px}
+.modal-title{font-size:20px;font-weight:900;color:var(--tx)}
+.modal-row{display:flex;gap:10px}
+.modal-row .btn-primary{flex:1;text-align:center}
+.modal-row .btn-secondary{flex:1;text-align:center}
+
+/* ── EMERGENCY ──────────────────────────────── */
+#screen-emergency{background:linear-gradient(150deg,#EF4444,#DC2626,#B91C1C)}
+.em-wrap{flex:1;overflow-y:auto;display:flex;flex-direction:column;
+  padding:calc(var(--safe-t) + 16px) 14px calc(var(--safe-b) + 14px);gap:13px}
+.em-header{display:flex;align-items:center;gap:14px}
+.em-back{background:rgba(255,255,255,.2);color:white;border-radius:var(--pill);
+  padding:9px 15px;font-size:14px;font-weight:700;border:1.5px solid rgba(255,255,255,.3);flex-shrink:0}
+.em-title{font-size:24px;font-weight:900;color:white}
+.em-loc-box{background:rgba(255,255,255,.15);border-radius:var(--r-md);padding:13px 15px}
+.em-loc-lbl{font-size:10px;font-weight:800;text-transform:uppercase;
+  letter-spacing:1px;color:rgba(255,255,255,.6);margin-bottom:4px}
+.em-loc-val{font-size:15px;font-weight:700;color:white;line-height:1.4}
+.em-btns{display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:1}
+.em-btn{background:rgba(255,255,255,.16);border:2px solid rgba(255,255,255,.26);
+  border-radius:var(--r-lg);padding:20px 12px;display:flex;flex-direction:column;
+  align-items:center;gap:10px;min-height:100px;transition:background .15s}
+.em-btn.call-btn{background:rgba(255,255,255,.28);border-color:rgba(255,255,255,.5)}
+.em-btn:active{background:rgba(255,255,255,.38)}
+.em-btn-icon{font-size:34px;line-height:1}
+.em-btn-label{font-size:15px;font-weight:900;color:white;text-align:center;line-height:1.25}
+.em-msg{background:rgba(255,255,255,.15);border-radius:var(--r-md);padding:13px 15px;
+  text-align:center;font-size:15px;font-weight:600;color:rgba(255,255,255,.9)}
+
+/* ── SCAN OVERLAY ───────────────────────────── */
+.scan-ov{position:fixed;inset:0;background:rgba(0,0,0,.88);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:100;padding:32px;gap:17px}
+.scan-icon{font-size:90px;line-height:1}
+.scan-title{font-size:26px;font-weight:900;color:white;text-align:center}
+.scan-sub{font-size:16px;color:rgba(255,255,255,.7);text-align:center;line-height:1.5}
+.scan-board-btn{background:linear-gradient(135deg,#22C55E,#15803D);color:white;
+  border-radius:var(--pill);padding:16px 30px;font-size:17px;font-weight:800}
+.scan-close{background:rgba(255,255,255,.15);color:white;
+  border:2px solid rgba(255,255,255,.28);border-radius:var(--pill);
+  padding:12px 26px;font-size:15px;font-weight:700}
+
+/* ── TOAST ──────────────────────────────────── */
+.toast{position:fixed;bottom:calc(var(--nav-h) + var(--safe-b) + 16px);left:50%;
+  transform:translateX(-50%) translateY(14px);background:rgba(18,18,30,.92);
+  color:white;padding:11px 20px;border-radius:var(--pill);font-size:15px;font-weight:600;
+  z-index:200;pointer-events:none;opacity:0;transition:opacity .22s,transform .22s;
+  white-space:nowrap;backdrop-filter:blur(10px);max-width:88vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     SCREEN: ONBOARDING (first-time parent setup)
+     ═══════════════════════════════════════════ -->
+<div id="screen-onboard" class="screen">
+  <div class="ob-wrap">
+
+    <!-- Step 1: Child profile -->
+    <div class="ob-step" id="ob-s1">
+      <div class="ob-icon">🚌</div>
+      <h1 class="ob-title">Hi! I'm BusBuddy</h1>
+      <p class="ob-sub">Let's set this up for your child. It takes about a minute.</p>
+      <div class="fld-group">
+        <label class="ob-step fld-lbl">Child's name</label>
+        <input type="text" id="ob-name" class="ob-step fld-inp" placeholder="e.g. Aisyah" maxlength="20">
+      </div>
+      <div class="fld-group">
+        <label class="ob-step fld-lbl">Choose a picture</label>
+        <div class="emoji-grid" id="ob-emojis"></div>
+      </div>
+      <button class="btn-primary" id="ob-s1-next">Next →</button>
+    </div>
+
+    <!-- Step 2: Parent PIN -->
+    <div class="ob-step hidden" id="ob-s2">
+      <div class="ob-icon">🔐</div>
+      <h1 class="ob-title">Parent PIN</h1>
+      <p class="ob-sub">This PIN protects your settings. Only you should know it.</p>
+      <div class="fld-group">
+        <label class="ob-step fld-lbl">Create a 4-digit PIN</label>
+        <input type="password" id="ob-pin1" class="ob-step fld-inp center" placeholder="••••" maxlength="4" inputmode="numeric">
+      </div>
+      <div class="fld-group">
+        <label class="ob-step fld-lbl">Confirm PIN</label>
+        <input type="password" id="ob-pin2" class="ob-step fld-inp center" placeholder="••••" maxlength="4" inputmode="numeric">
+      </div>
+      <button class="btn-primary" id="ob-s2-next">Next →</button>
+    </div>
+
+    <!-- Step 3: Emergency contacts -->
+    <div class="ob-step hidden" id="ob-s3">
+      <div class="ob-icon">📱</div>
+      <h1 class="ob-title">Emergency Contacts</h1>
+      <p class="ob-sub">Your child can call these from the Help screen if they need you.</p>
+      <div class="fld-group">
+        <label class="ob-step fld-lbl">Mum's number (optional)</label>
+        <input type="tel" id="ob-mum" class="ob-step fld-inp" placeholder="+65 9xxx xxxx">
+      </div>
+      <div class="fld-group">
+        <label class="ob-step fld-lbl">Dad's number (optional)</label>
+        <input type="tel" id="ob-dad" class="ob-step fld-inp" placeholder="+65 9xxx xxxx">
+      </div>
+      <button class="btn-primary" id="ob-s3-done">All done! 🎉</button>
+    </div>
+
+    <div class="ob-progress">
+      <span class="ob-dot active"></span>
+      <span class="ob-dot"></span>
+      <span class="ob-dot"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     SCREEN: HOME
+     ═══════════════════════════════════════════ -->
+<div id="screen-home" class="screen hidden">
+  <header class="app-hdr">
+    <div class="hdr-l">
+      <span class="app-logo">🚌</span>
+      <div>
+        <div class="app-name">BusBuddy</div>
+        <div class="app-time" id="home-time">10:15 AM</div>
+      </div>
+    </div>
+    <button class="sos-btn" onclick="App.goTo('emergency')">🆘</button>
+  </header>
+
+  <div class="scroll-area">
+    <div class="home-greeting" id="home-greet">Where are you going today? 👋</div>
+    <div class="demo-banner hidden" id="demo-banner">
+      📍 Demo mode — ask a parent to add your real stops in ⚙️ Settings
+    </div>
+    <div class="dest-grid" id="dest-grid"></div>
+    <div class="empty-state hidden" id="dest-empty">
+      <div class="empty-icon">🗺️</div>
+      <h3>No destinations yet</h3>
+      <p>Ask a parent to add your home, school, and other places in Settings.</p>
+      <button class="btn-primary" style="margin-top:4px" onclick="App.goTo('ai')">Try AI Helper instead 🤖</button>
+    </div>
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" id="nav-home" onclick="App.goTo('home')">
+      <span class="nav-icon">🏠</span><span class="nav-lbl">Home</span>
+    </button>
+    <button class="nav-btn" id="nav-ai" onclick="App.goTo('ai')">
+      <span class="nav-icon">🤖</span><span class="nav-lbl">AI Helper</span>
+    </button>
+    <button class="nav-btn" id="nav-parent" onclick="App.goTo('parent')">
+      <span class="nav-icon">⚙️</span><span class="nav-lbl">Settings</span>
+    </button>
+  </nav>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     SCREEN: ARRIVAL
+     ═══════════════════════════════════════════ -->
+<div id="screen-arrival" class="screen hidden">
+  <header class="sub-hdr">
+    <button class="back-btn" onclick="App.goTo('home')">← Back</button>
+    <h2 class="sub-ttl" id="arr-title">Going Home</h2>
+    <button class="sos-btn-sm" onclick="App.goTo('emergency')">🆘</button>
+  </header>
+  <div class="scroll-area">
+    <div class="stop-card">
+      <span class="sc-icon">📍</span>
+      <div>
+        <div class="sc-lbl">You are at</div>
+        <div class="sc-name" id="arr-stop-name">Bus Stop 83139</div>
+        <div class="sc-sub" id="arr-stop-sub">Bedok North Ave 4</div>
+      </div>
+      <button class="sc-change" onclick="App.changeStop()">Change</button>
+    </div>
+    <div class="sec-lbl">Next arrivals</div>
+    <div id="arr-list"><div class="arr-loading">Loading bus arrivals... 🔄</div></div>
+    <div class="arr-tools">
+      <button class="btn-tool" onclick="App.scanBus()">📸 Scan bus number</button>
+      <button class="btn-tool" onclick="Arrival.refresh()">🔄 Refresh</button>
+    </div>
+  </div>
+  <input type="file" id="cam-input" accept="image/*" capture="environment" style="display:none">
+</div>
+
+<!-- ═══════════════════════════════════════════
+     SCREEN: JOURNEY
+     ═══════════════════════════════════════════ -->
+<div id="screen-journey" class="screen hidden">
+  <header class="j-header">
+    <div class="j-info">
+      <span class="j-icon">🚌</span>
+      <div>
+        <div class="j-bus" id="j-bus-no">Bus 74</div>
+        <div class="j-lbl" id="j-dest-lbl">Going home...</div>
+      </div>
+    </div>
+    <button class="sos-btn" onclick="App.goTo('emergency')">🆘</button>
+  </header>
+  <div class="scroll-area" id="j-scroll">
+    <div class="stop-counter">
+      <div class="stop-dots" id="j-dots"></div>
+      <div style="display:flex;flex-direction:column;align-items:center">
+        <div class="count-big" id="j-count">5</div>
+        <div class="count-lbl">stops to go</div>
+      </div>
+    </div>
+    <div class="j-stop-card next-stop">
+      <div class="j-stop-lbl">Next stop</div>
+      <div class="j-stop-name" id="j-next-stop">—</div>
+    </div>
+    <div class="j-stop-card dest-stop">
+      <div class="j-stop-lbl">Getting off at</div>
+      <div class="j-stop-name" id="j-off-stop">—</div>
+      <div class="j-stop-sub" id="j-off-sub"></div>
+    </div>
+    <div class="j-alert hidden" id="j-alert">
+      <span class="j-alert-icon">🔔</span>
+      <span class="j-alert-text" id="j-alert-text">Almost there!</span>
+    </div>
+    <button class="btn-tap" onclick="Journey.tapStop()">📍 Just passed a stop</button>
+    <button class="btn-secondary" style="width:100%" onclick="Journey.end()">✋ Not on this bus anymore</button>
+  </div>
+  <div class="j-footer">
+    <button class="sos-big" onclick="App.goTo('emergency')">🆘 I NEED HELP</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     SCREEN: AI CHAT
+     ═══════════════════════════════════════════ -->
+<div id="screen-ai" class="screen hidden">
+  <header class="sub-hdr">
+    <button class="back-btn" onclick="App.goTo('home')">← Back</button>
+    <h2 class="sub-ttl">🤖 AI Helper</h2>
+    <button class="sos-btn-sm" onclick="App.goTo('emergency')">🆘</button>
+  </header>
+  <div class="chat-area" id="chat-area"></div>
+  <div class="chat-opts" id="chat-opts"></div>
+  <div class="chat-type-row hidden" id="chat-type-row">
+    <input type="text" id="chat-inp" class="chat-type-inp" placeholder="Type here...">
+    <button class="chat-send" onclick="AIChat.sendFreeform()">Send</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     SCREEN: PARENT SETUP
+     ═══════════════════════════════════════════ -->
+<div id="screen-parent" class="screen hidden">
+
+  <!-- PIN entry -->
+  <div id="parent-pin-view">
+    <button class="pin-back" onclick="App.goTo('home')">← Back</button>
+    <div class="pin-wrap">
+      <div class="pin-icon">🔐</div>
+      <div class="pin-title">Parent Settings</div>
+      <div class="pin-sub">Enter your 4-digit PIN</div>
+      <div class="pin-dots" id="pin-display">
+        <span></span><span></span><span></span><span></span>
+      </div>
+      <div class="pin-pad" id="pin-pad"></div>
+      <div class="pin-err hidden" id="pin-err">Wrong PIN. Try again.</div>
+    </div>
+  </div>
+
+  <!-- Main settings (revealed after correct PIN) -->
+  <div id="parent-main-view" class="hidden" style="flex:1;display:flex;flex-direction:column">
+    <header class="sub-hdr">
+      <button class="back-btn" onclick="Parent.exit()">← Done</button>
+      <h2 class="sub-ttl">⚙️ Settings</h2>
+    </header>
+    <div class="p-tabs">
+      <button class="ptab active" data-tab="destinations" onclick="Parent.tab(this,'destinations')">Destinations</button>
+      <button class="ptab" data-tab="api" onclick="Parent.tab(this,'api')">API Setup</button>
+      <button class="ptab" data-tab="emergency" onclick="Parent.tab(this,'emergency')">Emergency</button>
+      <button class="ptab" data-tab="profile" onclick="Parent.tab(this,'profile')">Profile</button>
+    </div>
+    <div class="scroll-area" style="padding-bottom:24px">
+
+      <!-- Tab: Destinations -->
+      <div class="ptab-content" id="tab-destinations">
+        <div class="dest-list" id="p-dest-list"></div>
+        <button class="btn-add" onclick="Parent.openDestModal()">+ Add Destination</button>
+      </div>
+
+      <!-- Tab: API -->
+      <div class="ptab-content hidden" id="tab-api">
+        <div class="api-box">
+          <div class="sec-title">🚌 Live Bus Data</div>
+          <div class="sec-desc">Deploy the Cloudflare Worker from the README and paste the URL here. Without it, the app runs in demo mode.</div>
+          <div class="fld-lbl">LTA Proxy URL</div>
+          <input type="url" id="api-proxy" class="fld-inp" placeholder="https://your-worker.workers.dev">
+          <a href="#" class="guide-link" onclick="Parent.proxyGuide();return false">How to set this up →</a>
+        </div>
+        <div class="api-box">
+          <div class="sec-title">🤖 AI Features</div>
+          <div class="sec-desc">Enter an Anthropic API key to enable the AI helper and camera bus scanning.</div>
+          <div class="fld-lbl">Anthropic API Key</div>
+          <input type="password" id="api-key" class="fld-inp" placeholder="sk-ant-...">
+          <a href="https://console.anthropic.com" target="_blank" class="guide-link">Get an API key →</a>
+        </div>
+        <button class="btn-primary full" onclick="Parent.saveAPI()">Save API Settings</button>
+      </div>
+
+      <!-- Tab: Emergency -->
+      <div class="ptab-content hidden" id="tab-emergency">
+        <div class="sec-title">📱 Emergency Contacts</div>
+        <div class="sec-desc">Your child can call these quickly from the Help screen.</div>
+        <div class="fld-group">
+          <label class="fld-lbl">Mum's number</label>
+          <input type="tel" id="em-mum" class="fld-inp" placeholder="+65 9xxx xxxx">
+        </div>
+        <div class="fld-group">
+          <label class="fld-lbl">Dad's number</label>
+          <input type="tel" id="em-dad" class="fld-inp" placeholder="+65 9xxx xxxx">
+        </div>
+        <div class="fld-group">
+          <label class="fld-lbl">Other contact name</label>
+          <input type="text" id="em-other-name" class="fld-inp" placeholder="e.g. Grandma">
+        </div>
+        <div class="fld-group">
+          <label class="fld-lbl">Other contact number</label>
+          <input type="tel" id="em-other-num" class="fld-inp" placeholder="+65 9xxx xxxx">
+        </div>
+        <button class="btn-primary full" onclick="Parent.saveEmergency()">Save Contacts</button>
+      </div>
+
+      <!-- Tab: Profile -->
+      <div class="ptab-content hidden" id="tab-profile">
+        <div class="sec-title">👤 Child Profile</div>
+        <div class="fld-group">
+          <label class="fld-lbl">Child's name</label>
+          <input type="text" id="p-name" class="fld-inp" placeholder="e.g. Aisyah" maxlength="20">
+        </div>
+        <div class="fld-group">
+          <label class="fld-lbl">Picture</label>
+          <div class="emoji-grid light-emojis" id="p-emojis"></div>
+        </div>
+        <button class="btn-primary full" onclick="Parent.saveProfile()">Save Profile</button>
+        <div class="sec-title" style="margin-top:8px">🔐 Change PIN</div>
+        <div class="fld-group">
+          <label class="fld-lbl">New PIN (4 digits)</label>
+          <input type="password" id="p-pin1" class="fld-inp" placeholder="••••" maxlength="4" inputmode="numeric">
+        </div>
+        <div class="fld-group">
+          <label class="fld-lbl">Confirm new PIN</label>
+          <input type="password" id="p-pin2" class="fld-inp" placeholder="••••" maxlength="4" inputmode="numeric">
+        </div>
+        <button class="btn-secondary" onclick="Parent.changePIN()">Update PIN</button>
+      </div>
+
+    </div><!-- /scroll-area -->
+  </div><!-- /parent-main-view -->
+
+  <!-- Destination modal -->
+  <div class="modal-bg hidden" id="dest-modal">
+    <div class="modal-sheet">
+      <div class="modal-title" id="dest-modal-title">Add Destination</div>
+      <div class="fld-group">
+        <label class="fld-lbl">Label</label>
+        <select id="dm-preset" class="fld-inp" onchange="Parent.presetChanged()">
+          <option value="Home">🏠 Home</option>
+          <option value="School">🏫 School</option>
+          <option value="Grandma's House">👵 Grandma's House</option>
+          <option value="Tuition">📚 Tuition</option>
+          <option value="custom">✏️ Custom...</option>
+        </select>
+        <input type="text" id="dm-custom" class="fld-inp hidden" placeholder="Destination name" style="margin-top:7px">
+      </div>
+      <div class="fld-group">
+        <label class="fld-lbl">Bus Stop Code (5 digits)</label>
+        <input type="text" id="dm-code" class="fld-inp" placeholder="e.g. 83139" maxlength="5" inputmode="numeric">
+      </div>
+      <div class="fld-group">
+        <label class="fld-lbl">Bus Stop Name (shown to child)</label>
+        <input type="text" id="dm-stop-name" class="fld-inp" placeholder="e.g. Blk 416 Bedok North Ave 4">
+      </div>
+      <div class="fld-group">
+        <label class="fld-lbl">Bus numbers to take (comma-separated)</label>
+        <input type="text" id="dm-buses" class="fld-inp" placeholder="e.g. 74, 65">
+      </div>
+      <div class="fld-group">
+        <label class="fld-lbl">Number of stops to destination</label>
+        <input type="number" id="dm-stops" class="fld-inp" placeholder="e.g. 7" min="1" max="99">
+      </div>
+      <div class="modal-row">
+        <button class="btn-secondary" onclick="Parent.closeDestModal()">Cancel</button>
+        <button class="btn-primary" onclick="Parent.saveDestination()">Save</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /screen-parent -->
+
+<!-- ═══════════════════════════════════════════
+     SCREEN: EMERGENCY
+     ═══════════════════════════════════════════ -->
+<div id="screen-emergency" class="screen hidden">
+  <div class="em-wrap">
+    <div class="em-header">
+      <button class="em-back" onclick="App.exitEmergency()">← I'm OK</button>
+      <div class="em-title">🆘 I Need Help</div>
+    </div>
+    <div class="em-loc-box">
+      <div class="em-loc-lbl">You are at</div>
+      <div class="em-loc-val" id="em-loc">Finding your location...</div>
+    </div>
+    <div class="em-btns">
+      <button class="em-btn call-btn" id="em-btn-mum" onclick="Emergency.callMum()">
+        <span class="em-btn-icon">📞</span>
+        <span class="em-btn-label">Call Mum</span>
+      </button>
+      <button class="em-btn call-btn" id="em-btn-dad" onclick="Emergency.callDad()">
+        <span class="em-btn-icon">📞</span>
+        <span class="em-btn-label">Call Dad</span>
+      </button>
+      <button class="em-btn" onclick="Emergency.shareLocation()">
+        <span class="em-btn-icon">📍</span>
+        <span class="em-btn-label">Share My Location</span>
+      </button>
+      <button class="em-btn" onclick="Emergency.showStopInfo()">
+        <span class="em-btn-icon">🚏</span>
+        <span class="em-btn-label">Show Bus Stop Info</span>
+      </button>
+    </div>
+    <div class="em-msg">Stay where you are. Help is coming. 💙</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SERVICE WORKER — must be first JS executed
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// CONSTANTS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const EMOJIS = ['😊','😎','🤩','🥳','😇','🤗','😏','🥰','😋','🤓','😜','🧐',
+                '👻','🐯','🦊','🐼','🐸','🦁','🤖','👾','🎃','🍭','🔥','⚡'];
+
+const PRESET_MAP = {
+  'Home':           { emoji:'🏠', color:'c-home' },
+  'School':         { emoji:'🏫', color:'c-school' },
+  "Grandma's House":{ emoji:'👵', color:'c-grandma' },
+  'Tuition':        { emoji:'📚', color:'c-tuition' },
+};
+const CUSTOM_COLORS = ['c-0','c-1','c-2','c-3'];
+
+// Demo destinations shown before parent configures real ones
+const DEMO_DESTS = [
+  { id:'demo-home',   label:'Home',   emoji:'🏠', color:'c-home',
+    busStop:{code:'83139',name:'Blk 416 Bedok North Ave 4'}, buses:['74','65'], stopsCount:7 },
+  { id:'demo-school', label:'School', emoji:'🏫', color:'c-school',
+    busStop:{code:'75009',name:'Tampines MRT Station'},       buses:['74'],      stopsCount:5 },
+];
+
+// Mock arrival data (used when no LTA proxy configured)
+function mockArrivals(stopCode, services) {
+  const now = Date.now();
+  const buses = services.length ? services : ['74','65'];
+  return buses.map((svc, i) => ({
+    ServiceNo: svc,
+    NextBus: {
+      EstimatedArrival: new Date(now + (2+i*4)*60000).toISOString(),
+      Type: i%2===0 ? 'DD' : 'SD', Load:'SEA'
+    },
+    NextBus2: {
+      EstimatedArrival: new Date(now + (12+i*4)*60000).toISOString(),
+      Type: i%2===0 ? 'DD' : 'SD', Load:'SDA'
+    },
+    NextBus3: {
+      EstimatedArrival: new Date(now + (22+i*4)*60000).toISOString(),
+      Type: i%2===0 ? 'DD' : 'SD', Load:'SEA'
+    }
+  }));
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// IDB
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+let _db = null;
+
+async function initIDB() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open('busbuddy', 1);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains('arr_cache')) {
+        d.createObjectStore('arr_cache', { keyPath:'key' });
+      }
+    };
+    req.onsuccess = e => { _db = e.target.result; res(); };
+    req.onerror  = () => rej(req.error);
+  });
+}
+
+async function idbGet(store, key) {
+  if (!_db) return null;
+  return new Promise(r => {
+    const req = _db.transaction(store,'readonly').objectStore(store).get(key);
+    req.onsuccess = () => r(req.result || null);
+    req.onerror   = () => r(null);
+  });
+}
+
+async function idbPut(store, obj) {
+  if (!_db) return;
+  return new Promise(r => {
+    const tx = _db.transaction(store,'readwrite');
+    tx.objectStore(store).put(obj);
+    tx.oncomplete = () => r();
+    tx.onerror    = () => r();
+  });
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// STORE (localStorage helpers)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const P = 'bb_'; // prefix
+const Store = {
+  get:   k => { try { return JSON.parse(localStorage.getItem(P+k)); } catch { return null; } },
+  set:   (k,v) => localStorage.setItem(P+k, JSON.stringify(v)),
+  rm:    k => localStorage.removeItem(P+k),
+  cfg:   ()  => Store.get('cfg') || {},
+  setCfg:(o) => Store.set('cfg', { ...Store.cfg(), ...o }),
+  profile: () => Store.get('profile') || { name:'Friend', emoji:'😊' },
+  dests:   () => Store.get('dests')   || [],
+  setDests: d => Store.set('dests', d),
+  em:      () => Store.get('em')      || {},
+  setEm:   e => Store.set('em', e),
+  done:    () => !!Store.get('setup_done'),
+  markDone:() => Store.set('setup_done', true),
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// API MODULE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const API = {
+  async arrivals(stopCode, services = []) {
+    const cacheKey = `arr_${stopCode}`;
+    const cached = await idbGet('arr_cache', cacheKey);
+    if (cached && Date.now() - cached.ts < 60000) return cached.data;
+
+    const cfg = Store.cfg();
+    if (!cfg.ltaProxy) {
+      const data = mockArrivals(stopCode, services);
+      await idbPut('arr_cache', { key:cacheKey, data, ts:Date.now() });
+      return data;
+    }
+
+    try {
+      const svcQ = services.length ? `&ServiceNo=${services[0]}` : '';
+      const res = await fetch(`${cfg.ltaProxy}/bus-arrival?BusStopCode=${stopCode}${svcQ}`,
+        { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) throw new Error('HTTP '+res.status);
+      const json = await res.json();
+      // Filter to requested services if specified
+      let data = json.Services || [];
+      if (services.length) data = data.filter(s => services.includes(s.ServiceNo));
+      await idbPut('arr_cache', { key:cacheKey, data, ts:Date.now() });
+      return data;
+    } catch {
+      return mockArrivals(stopCode, services);
+    }
+  },
+
+  async aiChat(messages, system) {
+    const { anthropicKey } = Store.cfg();
+    if (!anthropicKey) return null;
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'x-api-key': anthropicKey,
+          'anthropic-version':'2023-06-01'
+        },
+        body: JSON.stringify({
+          model:'claude-haiku-4-5-20251001',
+          max_tokens:300,
+          system,
+          messages
+        })
+      });
+      if (!res.ok) return null;
+      const d = await res.json();
+      return d.content?.[0]?.text || null;
+    } catch { return null; }
+  },
+
+  async visionBus(b64, mimeType) {
+    const { anthropicKey } = Store.cfg();
+    if (!anthropicKey) return null;
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method:'POST',
+        headers:{
+          'Content-Type':'application/json',
+          'x-api-key': anthropicKey,
+          'anthropic-version':'2023-06-01'
+        },
+        body: JSON.stringify({
+          model:'claude-haiku-4-5-20251001',
+          max_tokens:30,
+          messages:[{ role:'user', content:[
+            { type:'image', source:{ type:'base64', media_type:mimeType, data:b64 } },
+            { type:'text',  text:'What Singapore bus service number is shown? Reply with the number only (e.g. "74", "NR5") or "unknown".' }
+          ]}]
+        })
+      });
+      if (!res.ok) return null;
+      const d = await res.json();
+      return d.content?.[0]?.text?.trim() || null;
+    } catch { return null; }
+  }
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// UI HELPERS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const UI = {
+  _toastTimer: null,
+  _currentScreen: null,
+
+  show(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+    const el = document.getElementById('screen-'+id);
+    if (el) { el.classList.remove('hidden'); UI._currentScreen = id; }
+  },
+
+  toast(msg, ms=2800) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(UI._toastTimer);
+    UI._toastTimer = setTimeout(() => t.classList.remove('show'), ms);
+  },
+
+  greet(name) {
+    const h = new Date().getHours();
+    const g = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+    return `${g}, ${name}! 👋`;
+  },
+
+  minsTo(isoStr) {
+    if (!isoStr) return null;
+    return Math.round((new Date(isoStr) - Date.now()) / 60000);
+  },
+
+  fmtMins(m) {
+    if (m === null || m === undefined) return 'N/A';
+    if (m <= 0) return 'Arriving';
+    return m === 1 ? '1 min' : `${m} mins`;
+  },
+
+  chipClass(m) {
+    if (m === null || m === undefined) return 'na';
+    if (m <= 1) return 'arriving';
+    if (m <= 3) return 'soon';
+    return 'okay';
+  },
+
+  busType(t) {
+    if (t === 'DD') return 'Double Deck 🚌';
+    if (t === 'BD') return 'Bendy 🚎';
+    return 'Single Deck 🚍';
+  },
+
+  uuid() {
+    return crypto.randomUUID ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2) + Date.now().toString(36);
+  },
+
+  localDateStr() {
+    const d = new Date();
+    const pad = n => String(n).padStart(2,'0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  }
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// EMOJI GRID HELPER
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function buildEmojiGrid(containerId, selected, onPick) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = EMOJIS.map(e =>
+    `<button class="emoji-item${e===selected?' sel':''}" data-e="${e}">${e}</button>`
+  ).join('');
+  el.querySelectorAll('.emoji-item').forEach(btn => {
+    btn.addEventListener('click', () => {
+      el.querySelectorAll('.emoji-item').forEach(b => b.classList.remove('sel'));
+      btn.classList.add('sel');
+      onPick(btn.dataset.e);
+    });
+  });
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ONBOARDING
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const Onboard = {
+  selEmoji: '😊',
+
+  init() {
+    buildEmojiGrid('ob-emojis', this.selEmoji, e => { Onboard.selEmoji = e; });
+
+    document.getElementById('ob-s1-next').onclick = () => {
+      const name = document.getElementById('ob-name').value.trim();
+      if (!name) { UI.toast('Please enter your child\'s name 😊'); return; }
+      Store.set('profile', { name, emoji: Onboard.selEmoji });
+      Onboard.goTo(2);
+    };
+
+    document.getElementById('ob-s2-next').onclick = () => {
+      const p1 = document.getElementById('ob-pin1').value;
+      const p2 = document.getElementById('ob-pin2').value;
+      if (!/^\d{4}$/.test(p1))  { UI.toast('PIN must be exactly 4 digits'); return; }
+      if (p1 !== p2)             { UI.toast('PINs don\'t match — try again'); return; }
+      Store.setCfg({ parentPin: p1 });
+      Onboard.goTo(3);
+    };
+
+    document.getElementById('ob-s3-done').onclick = () => {
+      Store.setEm({
+        mum: document.getElementById('ob-mum').value.trim(),
+        dad: document.getElementById('ob-dad').value.trim(),
+      });
+      Store.markDone();
+      App.goTo('home');
+    };
+  },
+
+  goTo(step) {
+    [1,2,3].forEach(n => {
+      document.getElementById(`ob-s${n}`).classList.toggle('hidden', n !== step);
+    });
+    document.querySelectorAll('.ob-dot').forEach((d,i) => {
+      d.classList.toggle('active', i < step);
+    });
+  }
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// HOME
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const Home = {
+  _clockTimer: null,
+
+  show() {
+    const profile = Store.profile();
+    document.getElementById('home-greet').textContent = UI.greet(profile.name);
+
+    const cfg = Store.cfg();
+    const dests = Store.dests();
+    const isDemo = !dests.length;
+
+    document.getElementById('demo-banner').classList.toggle('hidden', !isDemo || !!cfg.ltaProxy);
+
+    const grid  = document.getElementById('dest-grid');
+    const empty = document.getElementById('dest-empty');
+    const list  = isDemo ? DEMO_DESTS : dests;
+
+    if (list.length) {
+      empty.classList.add('hidden');
+      grid.innerHTML = list.map(d => `
+        <button class="dest-card ${d.color}" data-id="${d.id}">
+          <div class="card-shine"></div>
+          <div class="card-emoji">${d.emoji}</div>
+          <div class="card-label">${d.label}</div>
+          ${d.buses?.length ? `<div class="card-bus">Bus ${d.buses.join(' / ')}</div>` : ''}
+        </button>`).join('');
+      grid.querySelectorAll('.dest-card').forEach(c => {
+        c.addEventListener('click', () => Arrival.show(c.dataset.id));
+      });
+    } else {
+      grid.innerHTML = '';
+      empty.classList.remove('hidden');
+    }
+
+    this.startClock();
+    this.setNav('home');
+  },
+
+  startClock() {
+    clearInterval(this._clockTimer);
+    const tick = () => {
+      const d = new Date();
+      const h = d.getHours(), m = String(d.getMinutes()).padStart(2,'0');
+      const ampm = h>=12?'PM':'AM';
+      document.getElementById('home-time').textContent = `${((h%12)||12)}:${m} ${ampm}`;
+    };
+    tick();
+    this._clockTimer = setInterval(tick, 15000);
+  },
+
+  setNav(tab) {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    const m = { home:'nav-home', ai:'nav-ai' };
+    if (m[tab]) document.getElementById(m[tab])?.classList.add('active');
+  }
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ARRIVAL
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+let _currentDest = null;
+let _arrTimer = null;
+
+const Arrival = {
+  async show(destId) {
+    const allDests = Store.dests().length ? Store.dests() : DEMO_DESTS;
+    _currentDest = allDests.find(d => d.id === destId);
+    if (!_currentDest) return;
+
+    document.getElementById('arr-title').textContent = `Going to ${_currentDest.emoji} ${_currentDest.label}`;
+    document.getElementById('arr-stop-name').textContent = `Stop ${_currentDest.busStop.code}`;
+    document.getElementById('arr-stop-sub').textContent  = _currentDest.busStop.name;
+
+    UI.show('arrival');
+    await Arrival.refresh();
+
+    clearInterval(_arrTimer);
+    _arrTimer = setInterval(() => Arrival.refresh(), 60000);
+  },
+
+  async refresh() {
+    if (!_currentDest) return;
+    const list = document.getElementById('arr-list');
+    list.innerHTML = '<div class="arr-loading">Loading... 🔄</div>';
+
+    const services = await API.arrivals(_currentDest.busStop.code, _currentDest.buses || []);
+    if (!services.length) {
+      list.innerHTML = '<div class="arr-loading">No bus data right now 😔<br>Check your connection or try refreshing.</div>';
+      return;
+    }
+
+    const cfg = Store.cfg();
+    const isDemo = !cfg.ltaProxy;
+
+    list.innerHTML = services.map(s => {
+      const m1 = UI.minsTo(s.NextBus?.EstimatedArrival);
+      const m2 = UI.minsTo(s.NextBus2?.EstimatedArrival);
+      const m3 = UI.minsTo(s.NextBus3?.EstimatedArrival);
+      const cls = UI.chipClass(m1);
+      const statusColor = cls==='arriving'?'#EF4444':cls==='soon'?'#F59E0B':'#22C55E';
+      const nextStr = [m2,m3].filter(x=>x!==null).map(UI.fmtMins).join(' · ');
+      return `
+        <div class="arr-card" style="--ac:${statusColor}" data-svc="${s.ServiceNo}">
+          <div class="arr-top">
+            <div>
+              <div class="arr-bus-no">${s.ServiceNo}</div>
+              <div class="arr-type">${UI.busType(s.NextBus?.Type)}</div>
+            </div>
+            <div class="arr-chip ${cls}">${UI.fmtMins(m1)}</div>
+          </div>
+          <div class="arr-bot">
+            <div class="arr-type" style="opacity:.5">Next:</div>
+            <div class="arr-next">${nextStr || '—'}</div>
+          </div>
+        </div>`;
+    }).join('');
+
+    if (isDemo) {
+      list.innerHTML += '<div class="arr-loading" style="padding:12px 0 0">Demo mode — times update every 60s</div>';
+    }
+
+    list.innerHTML += `<button class="board-btn" id="board-btn" style="display:none">🚌 I'm on the bus!</button>`;
+
+    // Click an arrival card → confirm boarding
+    list.querySelectorAll('.arr-card').forEach(card => {
+      card.addEventListener('click', () => Arrival.confirmBoard(card.dataset.svc));
+    });
+  },
+
+  confirmBoard(serviceNo) {
+    const overlay = document.createElement('div');
+    overlay.className = 'scan-ov';
+    overlay.innerHTML = `
+      <div class="scan-icon">🚌</div>
+      <div class="scan-title">Board Bus ${serviceNo}?</div>
+      <div class="scan-sub">${_currentDest.emoji} ${_currentDest.label} · ${_currentDest.stopsCount || 5} stops</div>
+      <button class="scan-board-btn" id="confirm-board">Yes! I'm getting on</button>
+      <button class="scan-close" id="cancel-board">Wait, not yet</button>
+    `;
+    document.body.appendChild(overlay);
+    document.getElementById('confirm-board').onclick = () => {
+      document.body.removeChild(overlay);
+      clearInterval(_arrTimer);
+      Journey.start(serviceNo, _currentDest);
+    };
+    document.getElementById('cancel-board').onclick = () => document.body.removeChild(overlay);
+  }
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// JOURNEY
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const Journey = {
+  data: null, // { serviceNo, dest, stopsCount, passed }
+  _gpsWatch: null,
+
+  start(serviceNo, dest) {
+    Journey.data = {
+      serviceNo,
+      dest,
+      stopsCount: dest.stopsCount || 5,
+      passed: 0
+    };
+    UI.show('journey');
+    Journey.render();
+    Journey.startGPS();
+  },
+
+  render() {
+    const { serviceNo, dest, stopsCount, passed } = Journey.data;
+    const remaining = Math.max(0, stopsCount - passed);
+
+    document.getElementById('j-bus-no').textContent  = `Bus ${serviceNo}`;
+    document.getElementById('j-dest-lbl').textContent = `Going to ${dest.emoji} ${dest.label}`;
+    document.getElementById('j-count').textContent    = remaining;
+    document.getElementById('j-off-stop').textContent = dest.busStop.name;
+
+    if (remaining > 1) {
+      document.getElementById('j-next-stop').textContent = `${remaining - 1} stop${remaining-1!==1?'s':''} to go`;
+      document.getElementById('j-off-sub').textContent   = `${remaining} more stops total`;
+    } else if (remaining === 1) {
+      document.getElementById('j-next-stop').textContent = 'Get off at the NEXT stop! 🔔';
+      document.getElementById('j-off-sub').textContent   = '';
+    } else {
+      document.getElementById('j-next-stop').textContent = 'Get off HERE! 🚨';
+      document.getElementById('j-off-sub').textContent   = '';
+    }
+
+    // Stop dots
+    document.getElementById('j-dots').innerHTML = Journey.dotsHTML(stopsCount, passed);
+
+    // Alert banner
+    const alertEl   = document.getElementById('j-alert');
+    const alertText = document.getElementById('j-alert-text');
+    if (remaining <= 0) {
+      alertEl.classList.remove('hidden');
+      alertEl.classList.add('urgent');
+      alertText.textContent = '🚨 Get off NOW! This is your stop!';
+      if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
+    } else if (remaining === 1) {
+      alertEl.classList.remove('hidden','urgent');
+      alertText.textContent = '🔔 Get ready! Get off at the NEXT stop.';
+      if (navigator.vibrate) navigator.vibrate([200]);
+    } else if (remaining === 2) {
+      alertEl.classList.remove('hidden','urgent');
+      alertText.textContent = '⚠️ Almost there! 2 stops to go.';
+    } else {
+      alertEl.classList.add('hidden');
+    }
+  },
+
+  dotsHTML(total, passed) {
+    // Cap visible dots at 9 for layout
+    const MAX = 8;
+    let t = Math.min(total, MAX);
+    let p = total <= MAX ? passed : Math.round((passed / total) * t);
+    p = Math.min(p, t);
+    let h = '';
+    for (let i = 0; i <= t; i++) {
+      if (i > 0) h += `<div class="s-line${i<=p?' passed':''}"></div>`;
+      const cls = i < p ? 'passed' : i === p ? 'here' : '';
+      h += `<div class="s-dot${cls?' '+cls:''}"></div>`;
+    }
+    return h;
+  },
+
+  tapStop() {
+    if (!Journey.data) return;
+    Journey.data.passed = Math.min(Journey.data.passed + 1, Journey.data.stopsCount);
+    Journey.render();
+    UI.toast('Stop counted ✓');
+  },
+
+  end() {
+    Journey.stopGPS();
+    Journey.data = null;
+    App.goTo('home');
+    UI.toast('Journey ended. Stay safe! 👋');
+  },
+
+  startGPS() {
+    if (!navigator.geolocation) return;
+    Journey._gpsWatch = navigator.geolocation.watchPosition(
+      pos => { Journey._gpsPos = pos.coords; },
+      err => console.warn('GPS:', err),
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  },
+
+  stopGPS() {
+    if (Journey._gpsWatch !== null) {
+      navigator.geolocation.clearWatch(Journey._gpsWatch);
+      Journey._gpsWatch = null;
+    }
+  }
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// AI CHAT
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const AIChat = {
+  history: [],  // [{role,content}]
+  _pendingDestId: null,
+  _freeMode: false,
+
+  show() {
+    UI.show('ai');
+    Home.setNav('ai');
+    document.getElementById('chat-area').innerHTML = '';
+    document.getElementById('chat-opts').innerHTML = '';
+    document.getElementById('chat-type-row').classList.add('hidden');
+    AIChat.history = [];
+    AIChat._pendingDestId = null;
+    AIChat._freeMode = false;
+    AIChat.aiSay("Hi! 😊 Where do you want to go?", AIChat._destOptions());
+  },
+
+  _destOptions() {
+    const dests = Store.dests().length ? Store.dests() : DEMO_DESTS;
+    const opts = dests.map(d => `${d.emoji} ${d.label}`);
+    opts.push('Somewhere else...');
+    return opts;
+  },
+
+  aiSay(text, opts = []) {
+    const area = document.getElementById('chat-area');
+    const el = document.createElement('div');
+    el.className = 'chat-msg ai';
+    el.textContent = text;
+    area.appendChild(el);
+    area.scrollTop = area.scrollHeight;
+    AIChat.history.push({ role:'assistant', content:text });
+    AIChat._renderOpts(opts);
+  },
+
+  userSay(text) {
+    const area = document.getElementById('chat-area');
+    const el = document.createElement('div');
+    el.className = 'chat-msg user';
+    el.textContent = text;
+    area.appendChild(el);
+    area.scrollTop = area.scrollHeight;
+    AIChat.history.push({ role:'user', content:text });
+    document.getElementById('chat-opts').innerHTML = '';
+  },
+
+  _renderOpts(opts) {
+    document.getElementById('chat-opts').innerHTML = opts.map(o =>
+      `<button class="chat-opt" data-opt="${encodeURIComponent(o)}">${o}</button>`
+    ).join('');
+    document.querySelectorAll('.chat-opt').forEach(b => {
+      b.addEventListener('click', () => AIChat.choose(decodeURIComponent(b.dataset.opt)));
+    });
+  },
+
+  async choose(opt) {
+    AIChat.userSay(opt);
+
+    // ── Scripted decision tree (works with no API key) ──
+    if (opt === 'Somewhere else...') {
+      document.getElementById('chat-type-row').classList.remove('hidden');
+      AIChat._freeMode = true;
+      AIChat.aiSay("Sure! Type the place you want to go to. 😊", ['← Back to my places', '🆘 I Need Help']);
+      return;
+    }
+    if (opt === '← Back to my places') {
+      document.getElementById('chat-type-row').classList.add('hidden');
+      AIChat._freeMode = false;
+      AIChat.aiSay("No problem! Where do you want to go?", AIChat._destOptions());
+      return;
+    }
+    if (opt === '🆘 I Need Help') { App.goTo('emergency'); return; }
+    if (opt === 'Call Mum or Dad') { App.goTo('emergency'); return; }
+
+    // Check if matches a destination
+    const allDests = Store.dests().length ? Store.dests() : DEMO_DESTS;
+    const match = allDests.find(d => opt.includes(d.label));
+    if (match) {
+      AIChat._pendingDestId = match.id;
+      AIChat.aiSay(`Great! 🎉 Are you already at the bus stop?`, [
+        "Yes, I'm at the stop!",
+        "Not yet, still walking",
+        "I'm not sure where the stop is"
+      ]);
+      return;
+    }
+
+    if (opt === "Yes, I'm at the stop!" && AIChat._pendingDestId) {
+      AIChat.aiSay("Perfect! Let me check the buses for you. 🚌", []);
+      setTimeout(() => Arrival.show(AIChat._pendingDestId), 700);
+      return;
+    }
+    if (opt === "Not yet, still walking") {
+      AIChat.aiSay("No rush! Keep walking to the bus stop. Tap when you're there. 🚶", [
+        "I'm at the stop now!",
+        '← Back to my places'
+      ]);
+      return;
+    }
+    if (opt === "I'm at the stop now!" && AIChat._pendingDestId) {
+      setTimeout(() => Arrival.show(AIChat._pendingDestId), 400);
+      return;
+    }
+    if (opt === "I'm not sure where the stop is") {
+      AIChat.aiSay("Look for the blue bus stop sign 🚏 near you. If you can't find it, ask a nearby adult or press Help. 💙", [
+        "Found it! I'm there now",
+        '🆘 I Need Help',
+        '← Back to my places'
+      ]);
+      return;
+    }
+    if (opt === "Found it! I'm there now" && AIChat._pendingDestId) {
+      setTimeout(() => Arrival.show(AIChat._pendingDestId), 400);
+      return;
+    }
+
+    // ── AI-powered response (if API key available) ──
+    await AIChat._aiReply(opt);
+  },
+
+  async sendFreeform() {
+    const inp = document.getElementById('chat-inp');
+    const text = inp.value.trim();
+    if (!text) return;
+    inp.value = '';
+    AIChat.userSay(text);
+    await AIChat._aiReply(text);
+  },
+
+  async _aiReply(text) {
+    // Show thinking indicator
+    const area = document.getElementById('chat-area');
+    const thinking = document.createElement('div');
+    thinking.className = 'chat-thinking';
+    thinking.innerHTML = '<div class="dot-flash"><span></span><span></span><span></span></div>';
+    area.appendChild(thinking);
+    area.scrollTop = area.scrollHeight;
+
+    const dests = Store.dests().length ? Store.dests() : DEMO_DESTS;
+    const destStr = dests.map(d =>
+      `${d.emoji} ${d.label}: stop ${d.busStop.code} (${d.busStop.name}), buses: ${d.buses.join(', ')}`
+    ).join('\n');
+
+    const system = `You are BusBuddy, a bus navigation helper for Singapore children aged 7-12.
+Help them find which bus to take. Use very simple words. Be calm and encouraging.
+Keep replies to 1-2 short sentences. Always end with this JSON on a new line:
+{"options":["Opt1","Opt2","Opt3"]}
+Options: 2-4 short choices (max 5 words each).
+Child's destinations:\n${destStr}
+If lost or unsure: suggest "Call Mum or Dad".`;
+
+    const reply = await API.aiChat(AIChat.history.slice(-8), system);
+    area.removeChild(thinking);
+
+    if (!reply) {
+      AIChat.aiSay("Hmm, I'm not sure! 😊 Do you want to go to one of your saved places?",
+        [...AIChat._destOptions().slice(0,-1), '🆘 I Need Help']);
+      return;
+    }
+
+    const m = reply.match(/\{"options":\s*\[.*?\]\}/);
+    let opts = [];
+    let msg = reply;
+    if (m) {
+      try { opts = JSON.parse(m[0]).options; } catch {}
+      msg = reply.replace(m[0], '').trim();
+    }
+
+    AIChat.aiSay(msg, opts.length ? opts : ['← Back to my places', '🆘 I Need Help']);
+  }
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PARENT SETUP
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+let _pinEntry = '';
+let _editDestIdx = -1;
+let _parentEmoji = '😊';
+
+const Parent = {
+  show() {
+    _pinEntry = '';
+    document.getElementById('parent-pin-view').classList.remove('hidden');
+    document.getElementById('parent-main-view').classList.add('hidden');
+    document.querySelectorAll('.pin-dots span').forEach(s => s.classList.remove('filled'));
+    document.getElementById('pin-err').classList.add('hidden');
+    Parent._buildPad();
+    UI.show('parent');
+  },
+
+  _buildPad() {
+    const keys = ['1','2','3','4','5','6','7','8','9','','0','⌫'];
+    document.getElementById('pin-pad').innerHTML = keys.map(k => {
+      if (!k) return '<div class="pin-key empty"></div>';
+      const cls = k==='⌫'?'del':'';
+      return `<button class="pin-key ${cls}" data-k="${k}">${k}</button>`;
+    }).join('');
+    document.getElementById('pin-pad').querySelectorAll('button').forEach(b => {
+      b.addEventListener('click', () => Parent._padKey(b.dataset.k));
+    });
+  },
+
+  _padKey(k) {
+    if (k === '⌫') { _pinEntry = _pinEntry.slice(0,-1); }
+    else if (_pinEntry.length < 4) { _pinEntry += k; }
+    document.querySelectorAll('.pin-dots span').forEach((s,i) => {
+      s.classList.toggle('filled', i < _pinEntry.length);
+    });
+    if (_pinEntry.length === 4) Parent._checkPin();
+  },
+
+  _checkPin() {
+    const { parentPin } = Store.cfg();
+    if (_pinEntry === parentPin) {
+      document.getElementById('parent-pin-view').classList.add('hidden');
+      document.getElementById('parent-main-view').classList.remove('hidden');
+      Parent._load();
+    } else {
+      _pinEntry = '';
+      document.querySelectorAll('.pin-dots span').forEach(s => s.classList.remove('filled'));
+      const err = document.getElementById('pin-err');
+      err.classList.remove('hidden');
+      setTimeout(() => err.classList.add('hidden'), 2200);
+    }
+  },
+
+  _load() {
+    const cfg = Store.cfg();
+    const em  = Store.em();
+    const pro = Store.profile();
+
+    document.getElementById('api-proxy').value = cfg.ltaProxy  || '';
+    document.getElementById('api-key').value   = cfg.anthropicKey || '';
+    document.getElementById('em-mum').value    = em.mum       || '';
+    document.getElementById('em-dad').value    = em.dad       || '';
+    document.getElementById('em-other-name').value = em.otherName || '';
+    document.getElementById('em-other-num').value  = em.otherNum  || '';
+    document.getElementById('p-name').value    = pro.name     || '';
+
+    _parentEmoji = pro.emoji || '😊';
+    buildEmojiGrid('p-emojis', _parentEmoji, e => { _parentEmoji = e; });
+
+    Parent.renderDestList();
+    Parent.tab(document.querySelector('.ptab[data-tab="destinations"]'), 'destinations');
+  },
+
+  renderDestList() {
+    const dests = Store.dests();
+    const el = document.getElementById('p-dest-list');
+    if (!dests.length) {
+      el.innerHTML = '<p style="color:var(--tx3);font-size:13px;text-align:center;padding:16px 0">No destinations yet. Tap + below to add one.</p>';
+      return;
+    }
+    el.innerHTML = dests.map((d,i) => `
+      <div class="dest-item">
+        <div class="di-emoji">${d.emoji}</div>
+        <div class="di-info">
+          <div class="di-label">${d.label}</div>
+          <div class="di-sub">Stop ${d.busStop.code} · Bus ${d.buses.join(', ')}</div>
+        </div>
+        <div class="di-btns">
+          <button class="di-btn" onclick="Parent.editDest(${i})" title="Edit">✏️</button>
+          <button class="di-btn" onclick="Parent.deleteDest(${i})" title="Delete">🗑️</button>
+        </div>
+      </div>`).join('');
+  },
+
+  tab(btn, id) {
+    document.querySelectorAll('.ptab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.ptab-content').forEach(c => c.classList.add('hidden'));
+    document.getElementById(`tab-${id}`).classList.remove('hidden');
+  },
+
+  openDestModal(idx = -1) {
+    _editDestIdx = idx;
+    document.getElementById('dest-modal-title').textContent = idx < 0 ? 'Add Destination' : 'Edit Destination';
+
+    if (idx >= 0) {
+      const d = Store.dests()[idx];
+      const isPreset = PRESET_MAP[d.label];
+      document.getElementById('dm-preset').value = isPreset ? d.label : 'custom';
+      const cust = document.getElementById('dm-custom');
+      if (!isPreset) { cust.value = d.label; cust.classList.remove('hidden'); }
+      else cust.classList.add('hidden');
+      document.getElementById('dm-code').value      = d.busStop.code;
+      document.getElementById('dm-stop-name').value = d.busStop.name;
+      document.getElementById('dm-buses').value     = d.buses.join(', ');
+      document.getElementById('dm-stops').value     = d.stopsCount || '';
+    } else {
+      document.getElementById('dm-preset').value    = 'Home';
+      document.getElementById('dm-custom').value    = '';
+      document.getElementById('dm-custom').classList.add('hidden');
+      document.getElementById('dm-code').value      = '';
+      document.getElementById('dm-stop-name').value = '';
+      document.getElementById('dm-buses').value     = '';
+      document.getElementById('dm-stops').value     = '';
+    }
+    document.getElementById('dest-modal').classList.remove('hidden');
+  },
+
+  presetChanged() {
+    const v = document.getElementById('dm-preset').value;
+    document.getElementById('dm-custom').classList.toggle('hidden', v !== 'custom');
+  },
+
+  closeDestModal() {
+    document.getElementById('dest-modal').classList.add('hidden');
+  },
+
+  editDest(i)   { Parent.openDestModal(i); },
+  deleteDest(i) {
+    const d = Store.dests(); d.splice(i,1); Store.setDests(d);
+    Parent.renderDestList(); UI.toast('Destination removed');
+  },
+
+  saveDestination() {
+    const preset = document.getElementById('dm-preset').value;
+    const custom = document.getElementById('dm-custom').value.trim();
+    const label  = preset === 'custom' ? custom : preset;
+    const code   = document.getElementById('dm-code').value.trim();
+    const sname  = document.getElementById('dm-stop-name').value.trim();
+    const busRaw = document.getElementById('dm-buses').value;
+    const stops  = parseInt(document.getElementById('dm-stops').value) || 5;
+
+    if (!label)                         { UI.toast('Please enter a destination name'); return; }
+    if (!/^\d{5}$/.test(code))          { UI.toast('Bus stop code must be 5 digits'); return; }
+    if (!busRaw.trim())                 { UI.toast('Please enter at least one bus number'); return; }
+
+    const buses = busRaw.split(',').map(b => b.trim()).filter(Boolean);
+    const pre   = PRESET_MAP[label] || {};
+    const emoji = pre.emoji || ['🏪','🏥','🎭','🏋️','🎓','🎪'][Math.floor(Math.random()*6)];
+    const dests = Store.dests();
+    const colorIdx = dests.length % 4;
+    const color = PRESET_MAP[label]?.color || CUSTOM_COLORS[colorIdx];
+
+    const dest = {
+      id: _editDestIdx >= 0 ? dests[_editDestIdx].id : UI.uuid(),
+      label, emoji, color,
+      busStop: { code, name: sname || `Bus Stop ${code}` },
+      buses, stopsCount: stops
+    };
+
+    if (_editDestIdx >= 0) dests[_editDestIdx] = dest;
+    else dests.push(dest);
+
+    Store.setDests(dests);
+    Parent.closeDestModal();
+    Parent.renderDestList();
+    UI.toast(_editDestIdx >= 0 ? 'Destination updated! ✓' : 'Destination added! ✓');
+  },
+
+  saveAPI() {
+    Store.setCfg({
+      ltaProxy: document.getElementById('api-proxy').value.trim(),
+      anthropicKey: document.getElementById('api-key').value.trim()
+    });
+    UI.toast('API settings saved ✓');
+  },
+
+  saveEmergency() {
+    Store.setEm({
+      mum: document.getElementById('em-mum').value.trim(),
+      dad: document.getElementById('em-dad').value.trim(),
+      otherName: document.getElementById('em-other-name').value.trim(),
+      otherNum:  document.getElementById('em-other-num').value.trim(),
+    });
+    UI.toast('Emergency contacts saved ✓');
+  },
+
+  saveProfile() {
+    const name = document.getElementById('p-name').value.trim();
+    if (!name) { UI.toast('Please enter a name'); return; }
+    Store.set('profile', { name, emoji: _parentEmoji });
+    UI.toast('Profile saved ✓');
+  },
+
+  changePIN() {
+    const p1 = document.getElementById('p-pin1').value;
+    const p2 = document.getElementById('p-pin2').value;
+    if (!/^\d{4}$/.test(p1)) { UI.toast('PIN must be 4 digits'); return; }
+    if (p1 !== p2)           { UI.toast("PINs don't match"); return; }
+    Store.setCfg({ parentPin: p1 });
+    document.getElementById('p-pin1').value = '';
+    document.getElementById('p-pin2').value = '';
+    UI.toast('PIN updated ✓');
+  },
+
+  proxyGuide() {
+    alert('1. Sign up at datamall.lta.gov.sg\n2. Get your free API key\n3. Deploy the Cloudflare Worker from the README\n4. Paste your Worker URL here\n\nThe README has full step-by-step instructions.');
+  },
+
+  exit() { App.goTo('home'); }
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// EMERGENCY
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const Emergency = {
+  show() {
+    UI.show('emergency');
+    Emergency._updateButtons();
+    Emergency._getLocation();
+  },
+
+  _updateButtons() {
+    const em = Store.em();
+    const mumBtn = document.getElementById('em-btn-mum');
+    const dadBtn = document.getElementById('em-btn-dad');
+    if (!em.mum) mumBtn.style.opacity = '.45';
+    if (!em.dad) dadBtn.style.opacity = '.45';
+    if (em.otherName && em.otherNum) {
+      // Could dynamically add a third contact button here in future
+    }
+  },
+
+  _getLocation() {
+    const el = document.getElementById('em-loc');
+    if (Journey.data) {
+      el.textContent = `On Bus ${Journey.data.serviceNo} → ${Journey.data.dest.busStop.name}`;
+      return;
+    }
+    if (_currentDest) {
+      el.textContent = `Near ${_currentDest.busStop.name} (${_currentDest.busStop.code})`;
+      return;
+    }
+    el.textContent = 'Finding location...';
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        p => { el.textContent = `${p.coords.latitude.toFixed(5)}, ${p.coords.longitude.toFixed(5)}`; },
+        () => { el.textContent = 'GPS not available on this device'; },
+        { timeout: 6000 }
+      );
+    } else {
+      el.textContent = 'GPS not supported';
+    }
+  },
+
+  callMum() {
+    const { mum } = Store.em();
+    if (mum) window.location.href = `tel:${mum}`;
+    else UI.toast('No Mum number saved. Ask a parent to add it in Settings.');
+  },
+
+  callDad() {
+    const { dad } = Store.em();
+    if (dad) window.location.href = `tel:${dad}`;
+    else UI.toast('No Dad number saved. Ask a parent to add it in Settings.');
+  },
+
+  shareLocation() {
+    const loc = document.getElementById('em-loc').textContent;
+    const msg = `🆘 I need help! Location: ${loc}`;
+    if (navigator.share) {
+      navigator.share({ title:'BusBuddy — I need help!', text: msg }).catch(() => {});
+    } else if (navigator.clipboard) {
+      navigator.clipboard.writeText(msg)
+        .then(() => UI.toast('Location copied! Paste it into a message.'));
+    } else {
+      UI.toast('Show this screen to an adult for help.');
+    }
+  },
+
+  showStopInfo() {
+    let info = 'No active journey.';
+    if (Journey.data)    info = `Bus ${Journey.data.serviceNo}\nStop: ${Journey.data.dest.busStop.code}\n${Journey.data.dest.busStop.name}`;
+    else if (_currentDest) info = `Stop: ${_currentDest.busStop.code}\n${_currentDest.busStop.name}`;
+    alert(info);
+  }
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// CAMERA / BUS SCAN
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+document.getElementById('cam-input').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  e.target.value = '';
+
+  const cfg = Store.cfg();
+  if (!cfg.anthropicKey) {
+    const manual = prompt('Type the bus number you see on the bus:');
+    if (manual) App._checkBusNum(manual.trim());
+    return;
+  }
+
+  UI.toast('Reading bus number... 📷');
+  const b64 = await new Promise((res,rej) => {
+    const r = new FileReader();
+    r.onload  = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+
+  const detected = await API.visionBus(b64, file.type);
+  if (!detected || detected.toLowerCase() === 'unknown') {
+    UI.toast("Couldn't read the number clearly. Try again in better light 🔦");
+    return;
+  }
+  App._checkBusNum(detected);
+});
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// APP — central router
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const App = {
+  async init() {
+    await initIDB();
+    if (!Store.done()) {
+      UI.show('onboard');
+      Onboard.init();
+    } else {
+      App.goTo('home');
+    }
+  },
+
+  goTo(id) {
+    clearInterval(_arrTimer);
+    if (id === 'home')      { UI.show('home');      Home.show(); }
+    else if (id === 'ai')   { AIChat.show(); }
+    else if (id === 'parent'){ Parent.show(); }
+    else if (id === 'emergency') { Emergency.show(); }
+    else UI.show(id);
+  },
+
+  changeStop() { UI.toast('Ask a parent to change bus stops in ⚙️ Settings'); },
+
+  scanBus() { document.getElementById('cam-input').click(); },
+
+  exitEmergency() { App.goTo('home'); },
+
+  _checkBusNum(detected) {
+    if (!_currentDest) { UI.toast(`Bus detected: ${detected}`); return; }
+    const expected = _currentDest.buses || [];
+    const match = expected.some(b => b.toUpperCase() === detected.toUpperCase());
+
+    const ov = document.createElement('div');
+    ov.className = 'scan-ov';
+    ov.innerHTML = `
+      <div class="scan-icon">${match ? '✅' : '❌'}</div>
+      <div class="scan-title">${match ? 'This is your bus!' : 'Not your bus'}</div>
+      <div class="scan-sub">${
+        match
+          ? `Bus ${detected} — hop on! 🎉`
+          : `Scanned: Bus ${detected}<br>Your buses: ${expected.join(' or ')}`
+      }</div>
+      ${match ? `<button class="scan-board-btn" id="sv-board">Get on! 🚌</button>` : ''}
+      <button class="scan-close" id="sv-close">${match ? 'Back' : "OK, I'll wait"}</button>
+    `;
+    document.body.appendChild(ov);
+    if (match) {
+      document.getElementById('sv-board').onclick = () => {
+        document.body.removeChild(ov);
+        Journey.start(detected, _currentDest);
+      };
+    }
+    document.getElementById('sv-close').onclick = () => document.body.removeChild(ov);
+  }
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// BOOT
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+document.addEventListener('DOMContentLoaded', () => App.init());
+</script>
+</body>
+</html>
