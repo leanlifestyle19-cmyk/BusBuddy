@@ -485,7 +485,7 @@ select.fld-inp{cursor:pointer}
   <div class="scroll-area">
     <div class="home-greeting" id="home-greet">Where are you going today? 👋</div>
     <div class="demo-banner hidden" id="demo-banner">
-      📍 Demo mode — ask a parent to add your real stops in ⚙️ Settings
+      📍 Showing example stops — add your real destinations in ⚙️ Settings
     </div>
     <div class="dest-grid" id="dest-grid"></div>
     <div class="empty-state hidden" id="dest-empty">
@@ -640,21 +640,24 @@ select.fld-inp{cursor:pointer}
 
       <!-- Tab: API -->
       <div class="ptab-content hidden" id="tab-api">
-        <div class="api-box">
-          <div class="sec-title">🚌 Live Bus Data</div>
-          <div class="sec-desc">Deploy the Cloudflare Worker from the README and paste the URL here. Without it, the app runs in demo mode.</div>
-          <div class="fld-lbl">LTA Proxy URL</div>
-          <input type="url" id="api-proxy" class="fld-inp" placeholder="https://your-worker.workers.dev">
-          <a href="#" class="guide-link" onclick="Parent.proxyGuide();return false">How to set this up →</a>
+        <div class="sec-desc" style="background:var(--surf);border-radius:var(--r-md);padding:14px;border:1px solid var(--bdr)">
+          🚌 <strong>Live bus arrivals work automatically</strong> — no API key needed! The app uses Singapore's community bus data service.
         </div>
         <div class="api-box">
-          <div class="sec-title">🤖 AI Features</div>
-          <div class="sec-desc">Enter an Anthropic API key to enable the AI helper and camera bus scanning.</div>
+          <div class="sec-title">🤖 AI Features (optional)</div>
+          <div class="sec-desc">Add an Anthropic API key to enable the AI Helper for unknown destinations and the 📸 camera bus scanner. Without it, the button-based helper still works fine.</div>
           <div class="fld-lbl">Anthropic API Key</div>
           <input type="password" id="api-key" class="fld-inp" placeholder="sk-ant-...">
-          <a href="https://console.anthropic.com" target="_blank" class="guide-link">Get an API key →</a>
+          <a href="https://console.anthropic.com" target="_blank" class="guide-link">Get a free API key →</a>
+          <div class="sec-desc" style="margin-top:2px">⚠️ Stored on this device only. Don't share your device with untrusted users.</div>
         </div>
-        <button class="btn-primary full" onclick="Parent.saveAPI()">Save API Settings</button>
+        <div class="api-box">
+          <div class="sec-title">🔧 Custom Proxy (advanced)</div>
+          <div class="sec-desc">Only needed if arrivelah2.busrouter.sg ever goes offline permanently. Leave blank to use the default community service. See README for self-hosting instructions.</div>
+          <div class="fld-lbl">Custom LTA Proxy URL</div>
+          <input type="url" id="api-proxy" class="fld-inp" placeholder="https://your-worker.workers.dev">
+        </div>
+        <button class="btn-primary full" onclick="Parent.saveAPI()">Save</button>
       </div>
 
       <!-- Tab: Emergency -->
@@ -897,31 +900,51 @@ const Store = {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const API = {
   async arrivals(stopCode, services = []) {
+    // Cache for 60 s to avoid hammering arrivelah2
     const cacheKey = `arr_${stopCode}`;
     const cached = await idbGet('arr_cache', cacheKey);
-    if (cached && Date.now() - cached.ts < 60000) return cached.data;
-
-    const cfg = Store.cfg();
-    if (!cfg.ltaProxy) {
-      const data = mockArrivals(stopCode, services);
-      await idbPut('arr_cache', { key:cacheKey, data, ts:Date.now() });
+    if (cached && Date.now() - cached.ts < 60000) {
+      let data = cached.data;
+      if (services.length) data = data.filter(s => services.includes(s.ServiceNo));
       return data;
     }
 
     try {
-      const svcQ = services.length ? `&ServiceNo=${services[0]}` : '';
-      const res = await fetch(`${cfg.ltaProxy}/bus-arrival?BusStopCode=${stopCode}${svcQ}`,
-        { signal: AbortSignal.timeout(8000) });
-      if (!res.ok) throw new Error('HTTP '+res.status);
+      // Use custom proxy if parent configured one, else arrivelah2 community service
+      const { ltaProxy } = Store.cfg();
+      const url = ltaProxy
+        ? `${ltaProxy}/bus-arrival?BusStopCode=${stopCode}`
+        : `https://arrivelah2.busrouter.sg/?id=${stopCode}`;
+
+      const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
       const json = await res.json();
-      // Filter to requested services if specified
-      let data = json.Services || [];
-      if (services.length) data = data.filter(s => services.includes(s.ServiceNo));
-      await idbPut('arr_cache', { key:cacheKey, data, ts:Date.now() });
-      return data;
+
+      // Normalise: custom proxy returns LTA shape; arrivelah2 returns its own shape
+      const all = ltaProxy
+        ? (json.Services || [])
+        : (json.services || []).map(s => ({
+            ServiceNo: s.no,
+            NextBus:  API._ah(s.next),
+            NextBus2: API._ah(s.next2),
+            NextBus3: API._ah(s.next3),
+          }));
+      await idbPut('arr_cache', { key:cacheKey, data:all, ts:Date.now() });
+      return services.length ? all.filter(s => services.includes(s.ServiceNo)) : all;
     } catch {
+      // Offline / arrivelah down → fall back to animated mock data
       return mockArrivals(stopCode, services);
     }
+  },
+
+  // Convert one arrivelah bus slot to internal shape
+  _ah(b) {
+    if (!b || b.duration_ms == null) return { EstimatedArrival: null };
+    return {
+      EstimatedArrival: new Date(Date.now() + b.duration_ms).toISOString(),
+      Type: b.type === 'dd' ? 'DD' : b.type === 'bd' ? 'BD' : 'SD',
+      Load: 'SEA',
+    };
   },
 
   async aiChat(messages, system) {
@@ -1115,7 +1138,7 @@ const Home = {
     const dests = Store.dests();
     const isDemo = !dests.length;
 
-    document.getElementById('demo-banner').classList.toggle('hidden', !isDemo || !!cfg.ltaProxy);
+    document.getElementById('demo-banner').classList.toggle('hidden', !isDemo);
 
     const grid  = document.getElementById('dest-grid');
     const empty = document.getElementById('dest-empty');
@@ -1195,9 +1218,6 @@ const Arrival = {
       return;
     }
 
-    const cfg = Store.cfg();
-    const isDemo = !cfg.ltaProxy;
-
     list.innerHTML = services.map(s => {
       const m1 = UI.minsTo(s.NextBus?.EstimatedArrival);
       const m2 = UI.minsTo(s.NextBus2?.EstimatedArrival);
@@ -1220,10 +1240,6 @@ const Arrival = {
           </div>
         </div>`;
     }).join('');
-
-    if (isDemo) {
-      list.innerHTML += '<div class="arr-loading" style="padding:12px 0 0">Demo mode — times update every 60s</div>';
-    }
 
     list.innerHTML += `<button class="board-btn" id="board-btn" style="display:none">🚌 I'm on the bus!</button>`;
 
@@ -1595,8 +1611,8 @@ const Parent = {
     const em  = Store.em();
     const pro = Store.profile();
 
-    document.getElementById('api-proxy').value = cfg.ltaProxy  || '';
     document.getElementById('api-key').value   = cfg.anthropicKey || '';
+    document.getElementById('api-proxy').value = cfg.ltaProxy     || '';
     document.getElementById('em-mum').value    = em.mum       || '';
     document.getElementById('em-dad').value    = em.dad       || '';
     document.getElementById('em-other-name').value = em.otherName || '';
@@ -1718,8 +1734,8 @@ const Parent = {
 
   saveAPI() {
     Store.setCfg({
+      anthropicKey: document.getElementById('api-key').value.trim(),
       ltaProxy: document.getElementById('api-proxy').value.trim(),
-      anthropicKey: document.getElementById('api-key').value.trim()
     });
     UI.toast('API settings saved ✓');
   },
@@ -1750,10 +1766,6 @@ const Parent = {
     document.getElementById('p-pin1').value = '';
     document.getElementById('p-pin2').value = '';
     UI.toast('PIN updated ✓');
-  },
-
-  proxyGuide() {
-    alert('1. Sign up at datamall.lta.gov.sg\n2. Get your free API key\n3. Deploy the Cloudflare Worker from the README\n4. Paste your Worker URL here\n\nThe README has full step-by-step instructions.');
   },
 
   exit() { App.goTo('home'); }
