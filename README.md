@@ -2,7 +2,7 @@
 
 A child-friendly Singapore bus navigation PWA for primary school children aged 7–12.
 
-Designed to answer the questions children actually ask:
+Designed to answer what children actually ask:
 - **Is my bus arriving soon?**
 - **Is this the correct bus?**
 - **How many stops until I get off?**
@@ -14,206 +14,212 @@ Designed to answer the questions children actually ask:
 
 | File | Purpose |
 |---|---|
-| `index.html` | Complete app (all CSS, HTML, JS) |
-| `sw.js` | Service worker — enables offline shell |
-| `manifest.json` | PWA manifest — enables "Add to Home Screen" |
+| `index.html` | Complete app — all CSS, HTML, JS in one file |
+| `sw.js` | Service worker — offline shell |
+| `manifest.json` | PWA manifest — "Add to Home Screen" |
 | `README.md` | This file |
 
 ---
 
-## Quick Start (Demo Mode)
-
-Deploy all 4 files to GitHub Pages and open the URL. The app runs immediately in **demo mode** with sample bus data — no API keys needed to explore the interface.
-
-For live Singapore bus data and AI features, complete the setup steps below.
-
----
-
-## Setup Guide
+## Setup — Two Steps
 
 ### Step 1 — Deploy to GitHub Pages
 
-1. Create a new GitHub repository (public)
-2. Upload all 4 files to the repository root
-3. Go to **Settings → Pages → Source → main branch → / (root)**
-4. Your app is live at `https://yourusername.github.io/your-repo-name/`
+1. Create a new GitHub repository (public or private)
+2. Upload all 4 files to the root
+3. Settings → Pages → Source → main → / (root)
+4. Open your URL — the app is live with **real bus data immediately**
 
-### Step 2 — LTA Bus Arrival Data (optional, recommended)
+No API keys needed. Live Singapore bus arrivals work out of the box.
 
-BusBuddy uses Singapore's LTA DataMall API for real-time bus arrivals. Because DataMall doesn't support CORS for browser requests, you need a small proxy.
+### Step 2 — Add Anthropic Key (optional)
 
-#### 2a. Get an LTA API key (free)
+Without a key, the AI Helper uses a scripted button-based decision tree — perfectly functional for most children.
 
-1. Register at [datamall.lta.gov.sg](https://datamall.lta.gov.sg)
-2. Request an API key (approved within 1–2 working days)
+Add a key to unlock:
+- **Free-form AI chat** — child types any destination and gets guidance
+- **📸 Camera bus scan** — photograph an approaching bus to confirm the number
 
-#### 2b. Deploy a Cloudflare Worker proxy (free tier)
+1. Get a key at [console.anthropic.com](https://console.anthropic.com)
+2. Open BusBuddy → ⚙️ Settings → enter Parent PIN → **API Setup**
+3. Paste the key and tap **Save**
 
-1. Sign up at [workers.cloudflare.com](https://workers.cloudflare.com) (free)
-2. Create a new Worker and paste this code:
+> The key is stored in your browser's localStorage on this device only. It is never sent anywhere except to Anthropic's API. Don't share the device with untrusted users.
+
+That's it. No Cloudflare, no DataMall registration, no server to manage.
+
+---
+
+## How It Works
+
+**Bus arrival data** is fetched from [arrivelah2.busrouter.sg](https://arrivelah2.busrouter.sg) — a free community service by [Cheeaun](https://github.com/cheeaun) that wraps the LTA DataMall API with CORS support. It requires no authentication and has been running since 2015. If it's unreachable, the app falls back to animated mock data automatically.
+
+---
+
+## 🔒 Privacy & Data Risks
+
+BusBuddy has no server and no cloud account. Everything is stored locally in your browser's `localStorage` — but that comes with its own risks that you should understand before putting this on a child's device.
+
+### What the app stores (all on-device, plaintext)
+
+| Data | Where | Risk if device is accessed |
+|---|---|---|
+| Child's name and emoji | localStorage | Low — not sensitive |
+| Parent PIN | localStorage, **plaintext** | Medium — 4-digit PIN offers minimal protection |
+| Mum/Dad phone numbers | localStorage | Medium — reveals contact info |
+| Destination names + bus stop codes | localStorage | Medium — reveals child's routine and home/school locations |
+| Anthropic API key (if entered) | localStorage | High — usable by anyone who reads it |
+| Arrival data cache | IndexedDB | Low — stale bus timing data, auto-expires |
+
+**Plaintext PIN:** The parent PIN is not hashed. It is stored as `"parentPin": "1234"`. Anyone who opens browser DevTools → Application → Local Storage on this device can read it. The PIN protects children from accidentally changing settings, not from determined adults.
+
+**Anthropic API key:** If entered, it is visible under LocalStorage in DevTools. It can be read by any JavaScript running on the same origin (your GitHub Pages domain). It is sent directly to `api.anthropic.com` in API requests — visible in the Network tab. To limit exposure, set a monthly spending cap at [console.anthropic.com](https://console.anthropic.com) so a leaked key can't run up large bills.
+
+**Camera photos (if AI scan is used):** When your child photographs a bus, that image is sent to Anthropic's API for processing. Anthropic's [privacy policy](https://www.anthropic.com/legal/privacy) applies. The image should only contain the bus itself. Do not use the camera feature to photograph people.
+
+**GPS location:** Only requested when the child opens the Emergency screen or when journey mode is active. Coordinates are shown on screen and can be shared via the device's native share sheet (SMS, WhatsApp, etc.) when the child taps "Share My Location". GPS data is **not stored** after the session.
+
+**Movement pattern:** The combination of your home bus stop, school bus stop, and grandma's bus stop — stored in localStorage — represents your child's daily routine. This data never leaves the device, but physical access to the device exposes it.
+
+### Bottom line
+
+This app is designed for a **dedicated family device or a parent's phone used by one child**. It is not appropriate for a shared device, a school-issued device, or anywhere the child's classmates or strangers might access the browser.
+
+If the device is lost or stolen, clear your Anthropic API key immediately at [console.anthropic.com](https://console.anthropic.com) → API Keys → Revoke.
+
+---
+
+## ⚠️ arrivelah2 / busrouter.sg — Service Reliability
+
+**The honest picture:** `arrivelah2.busrouter.sg` is a community project maintained by a single developer ([Cheeaun](https://github.com/cheeaun)). It is not a government service and carries no uptime guarantee.
+
+**Reasons for confidence:**
+- Has been running continuously since 2015 — over 10 years
+- Actively maintained: busrouter.sg (which depends on it) was last updated March 2026
+- Widely used by other Singapore transit apps and tools
+- Open source — the community can fork and self-host it if needed
+
+**Reasons for caution:**
+- One maintainer. If Cheeaun stops maintaining it, there is no fallback unless someone forks it
+- It depends on LTA's own DataMall API. If LTA changes their API format or authentication, arrivelah2 could break before Cheeaun patches it
+- No SLA. It could be down for hours or days with no notice
+
+**What happens if it goes down:**
+- The app detects the failure silently and switches to animated mock arrival times
+- Journey mode (manual stop counting), the AI Helper, and the Emergency screen all continue to work normally
+- Your child can still use the app — they just won't see real arrival times until the service recovers
+
+**Self-hosting fallback (for maximum reliability):**
+
+If arrivelah2 ever goes down permanently, you can run your own LTA proxy. Deploy this Cloudflare Worker (free tier), then add the URL under Settings → API Setup → Custom Proxy:
 
 ```javascript
+// Cloudflare Worker — paste at workers.cloudflare.com
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-
-    if (request.method === 'OPTIONS') {
-      return new Response(null, {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Headers': '*',
-        }
-      });
-    }
-
-    if (url.pathname === '/bus-arrival') {
-      const code = url.searchParams.get('BusStopCode') || '';
-      const svc  = url.searchParams.get('ServiceNo')   || '';
-      const ltaUrl = `https://datamall2.mytransport.sg/ltaodataservice/v3/BusArrival?BusStopCode=${code}&ServiceNo=${svc}`;
-
-      const res = await fetch(ltaUrl, {
-        headers: { 'AccountKey': env.LTA_KEY }
-      });
-      const data = await res.json();
-
-      return new Response(JSON.stringify(data), {
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        }
-      });
-    }
-
-    return new Response('Not found', { status: 404 });
+    if (url.pathname !== '/bus-arrival') return new Response('Not found', { status: 404 });
+    const code = url.searchParams.get('BusStopCode') || '';
+    const res = await fetch(
+      `https://datamall2.mytransport.sg/ltaodataservice/v3/BusArrival?BusStopCode=${code}`,
+      { headers: { 'AccountKey': env.LTA_KEY } }
+    );
+    const data = await res.json();
+    return new Response(JSON.stringify(data), {
+      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+    });
   }
 }
 ```
 
-3. Add an environment variable `LTA_KEY` with your LTA API key
-4. Deploy and copy your Worker URL (e.g. `https://busbuddy-proxy.yourname.workers.dev`)
-
-#### 2c. Enter the proxy URL in BusBuddy
-
-1. Open the app → tap **⚙️ Settings** → enter Parent PIN
-2. Go to **API Setup** tab
-3. Paste your Worker URL into **LTA Proxy URL**
-4. Tap **Save API Settings**
-
-### Step 3 — AI Helper (optional)
-
-The AI Helper and camera bus scanning both use the Anthropic Claude API.
-
-1. Get an API key at [console.anthropic.com](https://console.anthropic.com)
-2. In BusBuddy → **⚙️ Settings → API Setup**, enter your key under **Anthropic API Key**
-3. The AI Helper now answers natural-language questions; the 📸 Scan button uses vision to read bus numbers from photos
-
-> **Note:** The API key is stored in your browser's localStorage — on a private family device this is fine. Don't share the device with untrusted users.
+Set `LTA_KEY` as a Worker environment secret (your free LTA DataMall key from [datamall.lta.gov.sg](https://datamall.lta.gov.sg)). Your API key never reaches the browser — it stays inside Cloudflare.
 
 ---
 
-## How Children Use the App
+## Parent Setup Guide
 
-### First launch (parent sets up)
-1. Enter child's name and choose a picture
-2. Create a 4-digit parent PIN
-3. Add emergency contacts (Mum, Dad)
-4. The child is ready to use the app
+### First launch
+1. Enter your child's name and choose a picture
+2. Create a 4-digit parent PIN (you need this to access Settings later)
+3. Add emergency contacts — Mum and Dad phone numbers
+4. Done — the app shows example destinations to explore
 
-### Adding destinations (parent, via PIN)
-1. Tap ⚙️ → enter PIN → **Destinations** tab → **+ Add Destination**
-2. Choose a label (Home, School, Grandma's House, Tuition, or custom)
-3. Enter the 5-digit bus stop code (found on the bus stop pole or [mytransport.sg](https://www.mytransport.sg))
-4. Enter bus service numbers and number of stops to destination
-5. Tap **Save**
+### Adding real destinations
+Open ⚙️ Settings → enter PIN → **Destinations** tab → **+ Add Destination**
 
-### Child's daily flow
-1. Open BusBuddy
-2. Tap destination card (e.g. 🏠 Home)
-3. See next bus arrivals on the LED board
-4. Tap an arrival card to confirm boarding → Journey mode starts
-5. Tap **📍 Just passed a stop** each time the bus stops
-6. App alerts at 2 stops, 1 stop, and arrival
+| Field | What to enter |
+|---|---|
+| Label | Home / School / Grandma's House / Tuition / custom |
+| Bus Stop Code | 5-digit code from the bus stop pole |
+| Bus Stop Name | Friendly name shown to the child |
+| Bus numbers | Comma-separated services (e.g. `74, 65`) |
+| Stops to destination | How many stops from this stop to the drop-off |
+
+**Finding bus stop codes:** look at the blue sign on the bus stop pole, or visit [mytransport.sg](https://www.mytransport.sg).
 
 ---
 
 ## Features
 
-| Feature | Status |
+| Feature | Requires API key? |
 |---|---|
-| Destination cards with live bus arrivals | ✅ |
-| LED-style arrival board (recognisable from SG bus stops) | ✅ |
-| Journey mode with stop countdown | ✅ |
-| 📸 Camera bus number scanner (requires Anthropic key) | ✅ |
-| AI Helper — scripted decision tree | ✅ |
-| AI Helper — free-form with Claude (requires Anthropic key) | ✅ |
-| Emergency screen with Call Mum/Dad | ✅ |
-| Location sharing from emergency screen | ✅ |
-| Parent PIN-protected settings | ✅ |
-| Offline shell (service worker) | ✅ |
-| Installable PWA | ✅ |
-| Demo mode (no API keys needed) | ✅ |
+| Live bus arrivals (real Singapore data) | No |
+| Destination cards | No |
+| LED arrival board | No |
+| Journey mode with stop countdown | No |
+| AI Helper (button-based, scripted) | No |
+| Emergency screen — Call Mum/Dad | No |
+| Location sharing from emergency screen | No |
+| Offline shell (installable PWA) | No |
+| AI Helper — free-form chat | Anthropic key |
+| 📸 Camera bus number scanner | Anthropic key |
 
 ---
 
 ## ⚠️ Deploy Checklist
 
-Run this every time you update `index.html`:
+Every time you update `index.html`:
 
-- [ ] Bump the cache name in `sw.js` — change `bb-v1` to `bb-v2` (then `bb-v3`, etc.)
-- [ ] Upload **both** `index.html` and `sw.js` together — never one without the other
-- [ ] Test in a private/incognito tab to confirm the new version loads
-- [ ] Verify the correct app version on a second device
+- [ ] Open `sw.js` and bump the cache name: `bb-v1` → `bb-v2` → `bb-v3` etc.
+- [ ] Upload **both** `index.html` and `sw.js` — never one without the other
+- [ ] Test in a private/incognito tab to confirm the update loaded
 
-> **Why:** The service worker caches `index.html`. If you deploy a new `index.html` without changing the `sw.js` cache name, browsers will serve the old cached version indefinitely.
+**Why this matters:** The service worker caches `index.html`. If you deploy new HTML without bumping the SW cache name, every browser continues serving the old cached version until the cache is manually cleared.
 
 ---
 
 ## Troubleshooting
 
 **Bus arrivals not loading**
-- Check that your Cloudflare Worker URL is correct in Settings → API Setup
-- Try opening the Worker URL directly in a browser to test it
-- If no proxy configured, the app shows demo/mock arrivals — this is expected
+- Check you have an internet connection
+- The arrivelah2 service may be briefly down — the app shows demo data as fallback
+- Arrivals automatically refresh every 60 seconds
 
 **App not updating after deploy**
 - You forgot to bump the SW cache name — see Deploy Checklist above
-- Force-refresh: on iOS, delete from Home Screen and re-add; on Android, clear site data in Chrome settings
+- Hard reset on iOS: delete from Home Screen, re-add; on Android: Chrome → site settings → clear storage
 
 **AI Helper not working**
-- Check your Anthropic API key is entered correctly in Settings → API Setup
-- The scripted (button-based) decision tree works without any API key
-
-**Camera scan not working**
-- The camera icon only appears on the arrival screen
-- Requires an Anthropic API key to read bus numbers automatically
-- Without a key, it shows a manual text prompt instead
+- The scripted (button-based) tree needs no API key and always works
+- Free-form and camera features need an Anthropic key in Settings → API Setup
 
 **PIN forgotten**
-- Open browser DevTools → Application → Local Storage → delete all `bb_` keys
-- This resets the app completely; you will need to re-configure it
+- Browser DevTools → Application → Local Storage → delete all `bb_` entries
+- This resets the app fully; reconfigure from scratch
 
 ---
 
-## Bus Stop Codes
+## Tech Stack
 
-Find the 5-digit bus stop code:
-- On the bus stop pole (on the sign above the timetable)
-- At [mytransport.sg](https://www.mytransport.sg/content/mytransport/home/busservice.html)
-- On the Singapore Bus App
+Vanilla HTML / CSS / JavaScript — no build step, no frameworks
 
----
-
-## Built With
-
-- Vanilla HTML / CSS / JavaScript — no frameworks, no build step
-- LTA DataMall v3 API (bus arrivals)
-- Anthropic Claude API (AI chat + vision)
-- Cloudflare Workers (CORS proxy)
-- IndexedDB (arrival data cache)
-- Web Geolocation API (journey GPS)
-- Web Share API (emergency location sharing)
-- PWA: Service Worker + Web App Manifest
+- **Bus data:** [arrivelah2.busrouter.sg](https://arrivelah2.busrouter.sg) (free community LTA proxy)
+- **AI:** Anthropic Claude API (haiku model — fast, low cost)
+- **Storage:** localStorage + IndexedDB (arrival cache)
+- **PWA:** Service Worker + Web App Manifest
+- **GPS:** Web Geolocation API (journey tracking)
+- **Share:** Web Share API (emergency location)
 
 ---
 
-*BusBuddy — built for confident little travellers 🚌*
+*BusBuddy — for confident little travellers 🚌*
