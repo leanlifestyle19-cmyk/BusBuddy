@@ -1,4 +1,4 @@
-# BusBuddy 🚌
+# BusBuddy 🚌 v 23 Jun
 
 A child-friendly Singapore bus navigation PWA for primary school children aged 7–12.
 
@@ -32,7 +32,7 @@ Designed to answer what children actually ask:
 
 No API keys needed. Live Singapore bus arrivals work out of the box.
 
-### Step 2 — Add Anthropic Key (optional)
+### Step 2 — Add Gemini API Key (optional, free)
 
 Without a key, the AI Helper uses a scripted button-based decision tree — perfectly functional for most children.
 
@@ -40,13 +40,13 @@ Add a key to unlock:
 - **Free-form AI chat** — child types any destination and gets guidance
 - **📸 Camera bus scan** — photograph an approaching bus to confirm the number
 
-1. Get a key at [console.anthropic.com](https://console.anthropic.com)
+1. Get a **free** key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey) — no credit card needed
 2. Open BusBuddy → ⚙️ Settings → enter Parent PIN → **API Setup**
-3. Paste the key and tap **Save**
+3. Paste the key (`AIza...`) and tap **Save**
 
-> The key is stored in your browser's localStorage on this device only. It is never sent anywhere except to Anthropic's API. Don't share the device with untrusted users.
+The Gemini 2.0 Flash model used here has a generous free tier (15 requests/minute, 1 million tokens/day) — far more than a family app will ever use.
 
-That's it. No Cloudflare, no DataMall registration, no server to manage.
+> The key is stored in your browser's localStorage on this device only. It is sent only to Google's API (`generativelanguage.googleapis.com`). Don't share the device with untrusted users.
 
 ---
 
@@ -68,14 +68,14 @@ BusBuddy has no server and no cloud account. Everything is stored locally in you
 | Parent PIN | localStorage, **plaintext** | Medium — 4-digit PIN offers minimal protection |
 | Mum/Dad phone numbers | localStorage | Medium — reveals contact info |
 | Destination names + bus stop codes | localStorage | Medium — reveals child's routine and home/school locations |
-| Anthropic API key (if entered) | localStorage | High — usable by anyone who reads it |
+| Gemini API key (if entered) | localStorage | High — usable by anyone who reads it |
 | Arrival data cache | IndexedDB | Low — stale bus timing data, auto-expires |
 
 **Plaintext PIN:** The parent PIN is not hashed. It is stored as `"parentPin": "1234"`. Anyone who opens browser DevTools → Application → Local Storage on this device can read it. The PIN protects children from accidentally changing settings, not from determined adults.
 
-**Anthropic API key:** If entered, it is visible under LocalStorage in DevTools. It can be read by any JavaScript running on the same origin (your GitHub Pages domain). It is sent directly to `api.anthropic.com` in API requests — visible in the Network tab. To limit exposure, set a monthly spending cap at [console.anthropic.com](https://console.anthropic.com) so a leaked key can't run up large bills.
+**Gemini API key:** If entered, it is visible under LocalStorage in DevTools. It is sent to `generativelanguage.googleapis.com` in API requests — visible in the Network tab. To limit exposure, the free tier already has rate limits built in. If the device is lost, revoke the key immediately at [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
 
-**Camera photos (if AI scan is used):** When your child photographs a bus, that image is sent to Anthropic's API for processing. Anthropic's [privacy policy](https://www.anthropic.com/legal/privacy) applies. The image should only contain the bus itself. Do not use the camera feature to photograph people.
+**Camera photos (if AI scan is used):** When your child photographs a bus, that image is sent to Google's Gemini API for processing. Google's [privacy policy](https://policies.google.com/privacy) applies. The image should only contain the bus itself. Do not use the camera feature to photograph people.
 
 **GPS location:** Only requested when the child opens the Emergency screen or when journey mode is active. Coordinates are shown on screen and can be shared via the device's native share sheet (SMS, WhatsApp, etc.) when the child taps "Share My Location". GPS data is **not stored** after the session.
 
@@ -85,7 +85,7 @@ BusBuddy has no server and no cloud account. Everything is stored locally in you
 
 This app is designed for a **dedicated family device or a parent's phone used by one child**. It is not appropriate for a shared device, a school-issued device, or anywhere the child's classmates or strangers might access the browser.
 
-If the device is lost or stolen, clear your Anthropic API key immediately at [console.anthropic.com](https://console.anthropic.com) → API Keys → Revoke.
+If the device is lost or stolen, revoke your Gemini API key immediately at [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
 
 ---
 
@@ -171,8 +171,8 @@ Open ⚙️ Settings → enter PIN → **Destinations** tab → **+ Add Destinat
 | Emergency screen — Call Mum/Dad | No |
 | Location sharing from emergency screen | No |
 | Offline shell (installable PWA) | No |
-| AI Helper — free-form chat | Anthropic key |
-| 📸 Camera bus number scanner | Anthropic key |
+| AI Helper — free-form chat | Gemini key (free) |
+| 📸 Camera bus number scanner | Gemini key (free) |
 
 ---
 
@@ -201,7 +201,7 @@ Every time you update `index.html`:
 
 **AI Helper not working**
 - The scripted (button-based) tree needs no API key and always works
-- Free-form and camera features need an Anthropic key in Settings → API Setup
+- Free-form and camera features need a Gemini key in Settings → API Setup
 
 **PIN forgotten**
 - Browser DevTools → Application → Local Storage → delete all `bb_` entries
@@ -214,7 +214,7 @@ Every time you update `index.html`:
 Vanilla HTML / CSS / JavaScript — no build step, no frameworks
 
 - **Bus data:** [arrivelah2.busrouter.sg](https://arrivelah2.busrouter.sg) (free community LTA proxy)
-- **AI:** Anthropic Claude API (haiku model — fast, low cost)
+- **AI:** Google Gemini 2.0 Flash API (free tier — no credit card needed)
 - **Storage:** localStorage + IndexedDB (arrival cache)
 - **PWA:** Service Worker + Web App Manifest
 - **GPS:** Web Geolocation API (journey tracking)
