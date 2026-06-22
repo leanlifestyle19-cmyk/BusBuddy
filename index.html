@@ -7,13 +7,13 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="BusBuddy">
-  <meta name="theme-color" content="#FF5B36">
+  <meta name="theme-color" content="#0EA5E9">
   <link rel="manifest" href="manifest.json">
   <title>BusBuddy 🚌</title>
   <style>
 /* ── RESET ─────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden;background:#F2F4F8}
+html,body{height:100%;overflow:hidden;background:#F0F9FF}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
      color:#1A1A2E;-webkit-font-smoothing:antialiased;overscroll-behavior:none;user-select:none}
 button{cursor:pointer;border:none;background:none;font-family:inherit}
@@ -23,8 +23,8 @@ a{color:inherit;text-decoration:none}
 
 /* ── TOKENS ─────────────────────────────────── */
 :root{
-  --brand:#FF5B36; --brand-dk:#E04A28; --brand-lt:#FFE8E3; --brand-glow:rgba(255,91,54,.28);
-  --bg:#F2F4F8; --surf:#FFFFFF; --surf2:#F8F9FC;
+  --brand:#0EA5E9; --brand-dk:#0284C7; --brand-lt:#E0F2FE; --brand-glow:rgba(14,165,233,.28);
+  --bg:#F0F9FF; --surf:#FFFFFF; --surf2:#F8F9FC;
   --tx:#1A1A2E; --tx2:#64748B; --tx3:#9CA3AF; --txinv:#FFFFFF;
   --arriving:#EF4444; --soon:#F59E0B; --okay:#22C55E;
   --sos:#DC2626; --sos-glow:rgba(220,38,38,.32);
@@ -79,7 +79,7 @@ a{color:inherit;text-decoration:none}
 .nav-lbl{font-size:10px;font-weight:700;letter-spacing:.3px}
 
 /* ── ONBOARDING ─────────────────────────────── */
-#screen-onboard{background:linear-gradient(150deg,#FF8A70 0%,#FF5B36 45%,#D93F20 100%);
+#screen-onboard{background:linear-gradient(150deg,#7DD3FC 0%,#0EA5E9 45%,#0369A1 100%);
   overflow-y:auto;display:flex;flex-direction:column}
 .ob-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
   padding:calc(32px + var(--safe-t)) 24px calc(32px + var(--safe-b));min-height:100%}
@@ -299,7 +299,7 @@ select.fld-inp{cursor:pointer}
 
 /* ── PARENT SETUP ───────────────────────────── */
 #parent-pin-view{flex:1;display:flex;flex-direction:column;
-  background:linear-gradient(150deg,#FF8A70 0%,#FF5B36 45%,#D93F20 100%);position:relative}
+  background:linear-gradient(150deg,#7DD3FC 0%,#0EA5E9 45%,#0369A1 100%);position:relative}
 .pin-back{position:absolute;top:calc(14px + var(--safe-t));left:14px;
   background:rgba(255,255,255,.18);color:white;border-radius:var(--pill);
   padding:8px 15px;font-size:14px;font-weight:700}
