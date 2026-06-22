@@ -645,10 +645,10 @@ select.fld-inp{cursor:pointer}
         </div>
         <div class="api-box">
           <div class="sec-title">🤖 AI Features (optional)</div>
-          <div class="sec-desc">Add an Anthropic API key to enable the AI Helper for unknown destinations and the 📸 camera bus scanner. Without it, the button-based helper still works fine.</div>
-          <div class="fld-lbl">Anthropic API Key</div>
-          <input type="password" id="api-key" class="fld-inp" placeholder="sk-ant-...">
-          <a href="https://console.anthropic.com" target="_blank" class="guide-link">Get a free API key →</a>
+          <div class="sec-desc">Add a Google Gemini API key to enable the AI Helper for unknown destinations and the 📸 camera bus scanner. The key is <strong>free</strong> — get one at Google AI Studio. Without it, the button-based helper still works fine.</div>
+          <div class="fld-lbl">Google Gemini API Key</div>
+          <input type="password" id="api-key" class="fld-inp" placeholder="AIza...">
+          <a href="https://aistudio.google.com/apikey" target="_blank" class="guide-link">Get a free key at Google AI Studio →</a>
           <div class="sec-desc" style="margin-top:2px">⚠️ Stored on this device only. Don't share your device with untrusted users.</div>
         </div>
         <div class="api-box">
@@ -947,53 +947,51 @@ const API = {
     };
   },
 
-  async aiChat(messages, system) {
-    const { anthropicKey } = Store.cfg();
-    if (!anthropicKey) return null;
+  async aiChat(contents, system) {
+    const { geminiKey } = Store.cfg();
+    if (!geminiKey) return null;
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method:'POST',
-        headers:{
-          'Content-Type':'application/json',
-          'x-api-key': anthropicKey,
-          'anthropic-version':'2023-06-01'
-        },
-        body: JSON.stringify({
-          model:'claude-haiku-4-5-20251001',
-          max_tokens:300,
-          system,
-          messages
-        })
-      });
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: system }] },
+            contents,
+            generationConfig: { maxOutputTokens: 300, temperature: 0.7 }
+          })
+        }
+      );
       if (!res.ok) return null;
       const d = await res.json();
-      return d.content?.[0]?.text || null;
+      return d.candidates?.[0]?.content?.parts?.[0]?.text || null;
     } catch { return null; }
   },
 
   async visionBus(b64, mimeType) {
-    const { anthropicKey } = Store.cfg();
-    if (!anthropicKey) return null;
+    const { geminiKey } = Store.cfg();
+    if (!geminiKey) return null;
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method:'POST',
-        headers:{
-          'Content-Type':'application/json',
-          'x-api-key': anthropicKey,
-          'anthropic-version':'2023-06-01'
-        },
-        body: JSON.stringify({
-          model:'claude-haiku-4-5-20251001',
-          max_tokens:30,
-          messages:[{ role:'user', content:[
-            { type:'image', source:{ type:'base64', media_type:mimeType, data:b64 } },
-            { type:'text',  text:'What Singapore bus service number is shown? Reply with the number only (e.g. "74", "NR5") or "unknown".' }
-          ]}]
-        })
-      });
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { inlineData: { mimeType, data: b64 } },
+                { text: 'What Singapore bus service number is shown in this photo? Reply with the number only (e.g. "74", "NR5") or "unknown".' }
+              ]
+            }],
+            generationConfig: { maxOutputTokens: 20 }
+          })
+        }
+      );
       if (!res.ok) return null;
       const d = await res.json();
-      return d.content?.[0]?.text?.trim() || null;
+      return d.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
     } catch { return null; }
   }
 };
@@ -1411,7 +1409,7 @@ const AIChat = {
     el.textContent = text;
     area.appendChild(el);
     area.scrollTop = area.scrollHeight;
-    AIChat.history.push({ role:'assistant', content:text });
+    AIChat.history.push({ role:'model', parts:[{ text }] });
     AIChat._renderOpts(opts);
   },
 
@@ -1422,7 +1420,7 @@ const AIChat = {
     el.textContent = text;
     area.appendChild(el);
     area.scrollTop = area.scrollHeight;
-    AIChat.history.push({ role:'user', content:text });
+    AIChat.history.push({ role:'user', parts:[{ text }] });
     document.getElementById('chat-opts').innerHTML = '';
   },
 
@@ -1531,7 +1529,18 @@ Options: 2-4 short choices (max 5 words each).
 Child's destinations:\n${destStr}
 If lost or unsure: suggest "Call Mum or Dad".`;
 
-    const reply = await API.aiChat(AIChat.history.slice(-8), system);
+    // Gemini requires strictly alternating user/model turns starting with user
+    const raw = AIChat.history.slice(-8);
+    const contents = [];
+    for (const msg of raw) {
+      const last = contents[contents.length - 1];
+      if (last && last.role === msg.role) continue; // skip duplicate roles
+      contents.push(msg);
+    }
+    // Must start with 'user'
+    while (contents.length && contents[0].role !== 'user') contents.shift();
+
+    const reply = await API.aiChat(contents, system);
     area.removeChild(thinking);
 
     if (!reply) {
@@ -1611,7 +1620,7 @@ const Parent = {
     const em  = Store.em();
     const pro = Store.profile();
 
-    document.getElementById('api-key').value   = cfg.anthropicKey || '';
+    document.getElementById('api-key').value   = cfg.geminiKey || '';
     document.getElementById('api-proxy').value = cfg.ltaProxy     || '';
     document.getElementById('em-mum').value    = em.mum       || '';
     document.getElementById('em-dad').value    = em.dad       || '';
@@ -1734,8 +1743,8 @@ const Parent = {
 
   saveAPI() {
     Store.setCfg({
-      anthropicKey: document.getElementById('api-key').value.trim(),
-      ltaProxy: document.getElementById('api-proxy').value.trim(),
+      geminiKey: document.getElementById('api-key').value.trim(),
+      ltaProxy:  document.getElementById('api-proxy').value.trim(),
     });
     UI.toast('API settings saved ✓');
   },
@@ -1856,7 +1865,7 @@ document.getElementById('cam-input').addEventListener('change', async e => {
   e.target.value = '';
 
   const cfg = Store.cfg();
-  if (!cfg.anthropicKey) {
+  if (!cfg.geminiKey) {
     const manual = prompt('Type the bus number you see on the bus:');
     if (manual) App._checkBusNum(manual.trim());
     return;
