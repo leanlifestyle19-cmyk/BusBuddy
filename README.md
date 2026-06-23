@@ -1,4 +1,4 @@
-# BusBuddy 🚌 v 23 Jun
+# BusBuddy 🚌
 
 A child-friendly Singapore bus navigation PWA for primary school children aged 7–12.
 
@@ -42,7 +42,7 @@ Add a key to unlock:
 
 1. Get a **free** key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey) — no credit card needed
 2. Open BusBuddy → ⚙️ Settings → enter Parent PIN → **API Setup**
-3. Paste the key (`AIza...`) and tap **Save**
+3. Paste the key and tap **Save**
 
 The Gemini 2.0 Flash model used here has a generous free tier (15 requests/minute, 1 million tokens/day) — far more than a family app will ever use.
 
