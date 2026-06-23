@@ -652,7 +652,7 @@ select.fld-inp{cursor:pointer}
           <div class="sec-title">🤖 AI Features (optional)</div>
           <div class="sec-desc">Add a Google Gemini API key to enable the AI Helper for unknown destinations and the 📸 camera bus scanner. The key is <strong>free</strong> — get one at Google AI Studio. Without it, the button-based helper still works fine.</div>
           <div class="fld-lbl">Google Gemini API Key</div>
-          <input type="password" id="api-key" class="fld-inp" placeholder="AIza...">
+          <input type="password" id="api-key" class="fld-inp" placeholder="Paste your Gemini API key here">
           <a href="https://aistudio.google.com/apikey" target="_blank" class="guide-link">Get a free key at Google AI Studio →</a>
           <div class="sec-desc" style="margin-top:2px">⚠️ Stored on this device only. Don't share your device with untrusted users.</div>
         </div>
@@ -958,9 +958,11 @@ const API = {
   async aiChat(contents, system) {
     const { geminiKey } = Store.cfg();
     if (!geminiKey) return null;
+    // Guard: empty contents causes API 400
+    if (!contents.length) return null;
     try {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -971,10 +973,17 @@ const API = {
           })
         }
       );
-      if (!res.ok) return null;
+      if (!res.ok) {
+        const errBody = await res.text().catch(() => '');
+        console.error('Gemini error', res.status, errBody);
+        return `__err${res.status}`;   // pass status back for display
+      }
       const d = await res.json();
       return d.candidates?.[0]?.content?.parts?.[0]?.text || null;
-    } catch { return null; }
+    } catch (e) {
+      console.error('Gemini fetch failed:', e);
+      return null;
+    }
   },
 
   async visionBus(b64, mimeType) {
@@ -982,7 +991,7 @@ const API = {
     if (!geminiKey) return null;
     try {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1551,9 +1560,27 @@ If lost or unsure: suggest "Call Mum or Dad".`;
     const reply = await API.aiChat(contents, system);
     area.removeChild(thinking);
 
+    // No key configured
+    if (!reply && !Store.cfg().geminiKey) {
+      AIChat.aiSay("I need a Gemini API key to answer that. Ask a parent to add one in ⚙️ Settings → API Setup.",
+        ['← Back to my places', '🆘 I Need Help']);
+      return;
+    }
+
+    // API error — show status so parent can diagnose
+    if (typeof reply === 'string' && reply.startsWith('__err')) {
+      const status = reply.replace('__err','');
+      const msg = status === '400' ? 'API key issue (400). Check the key in Settings → API Setup.'
+                : status === '403' ? 'API key rejected (403). Make sure it is a Google AI Studio key.'
+                : `AI error (${status}). Check your Gemini key in Settings.`;
+      AIChat.aiSay(`⚠️ ${msg}`, ['← Back to my places', '🆘 I Need Help']);
+      return;
+    }
+
+    // Silent failure (network, parse error)
     if (!reply) {
-      AIChat.aiSay("Hmm, I'm not sure! 😊 Do you want to go to one of your saved places?",
-        [...AIChat._destOptions().slice(0,-1), '🆘 I Need Help']);
+      AIChat.aiSay("Couldn't reach the AI right now. Check your internet and try again! 😊",
+        ['← Back to my places', '🆘 I Need Help']);
       return;
     }
 
