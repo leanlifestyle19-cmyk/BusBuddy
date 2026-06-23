@@ -1,11 +1,13 @@
 // BusBuddy Service Worker
 // ⚠️ DEPLOY CHECKLIST: Bump CACHE name every time index.html changes
-const CACHE = 'bb-v4';
+const CACHE = 'bb-v6';
 
-// Never cache these — they must go to the network
+// Never cache these — they must always go to the network
 const BYPASS = [
-  'api.anthropic.com',
-  'datamall2.mytransport.sg'
+  'generativelanguage.googleapis.com',  // Gemini AI API
+  'arrivelah2.busrouter.sg',            // Live bus arrival data
+  'api.anthropic.com',                  // (legacy, kept for safety)
+  'datamall2.mytransport.sg'            // LTA direct (custom proxy fallback)
 ];
 
 self.addEventListener('install', e => {
