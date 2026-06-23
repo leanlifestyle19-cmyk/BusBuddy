@@ -37,7 +37,7 @@ a{color:inherit;text-decoration:none}
 
 /* ── SCREEN SYSTEM ──────────────────────────── */
 .screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--bg);overflow:hidden}
-.scroll-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 28px}
+.scroll-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 28px;min-height:0}
 
 /* ── HEADERS ────────────────────────────────── */
 .app-hdr{display:flex;align-items:center;justify-content:space-between;
@@ -336,6 +336,9 @@ select.fld-inp{cursor:pointer}
   border:1px solid var(--bdr);display:flex;flex-direction:column;gap:10px}
 .guide-link{font-size:13px;font-weight:600;color:var(--brand)}
 .dest-list{display:flex;flex-direction:column;gap:10px}
+/* Sticky footer Save button — outside scroll area so keyboard can't hide it */
+.p-footer{padding:12px 16px calc(12px + var(--safe-b));flex-shrink:0;
+  background:var(--surf);border-top:1px solid var(--bdr)}
 .dest-item{background:var(--surf);border-radius:var(--r-md);padding:13px;
   display:flex;align-items:center;gap:12px;border:1px solid var(--bdr);
   box-shadow:0 1px 4px rgba(0,0,0,.07)}
@@ -657,7 +660,6 @@ select.fld-inp{cursor:pointer}
           <div class="fld-lbl">Custom LTA Proxy URL</div>
           <input type="url" id="api-proxy" class="fld-inp" placeholder="https://your-worker.workers.dev">
         </div>
-        <button class="btn-primary full" onclick="Parent.saveAPI()">Save</button>
       </div>
 
       <!-- Tab: Emergency -->
@@ -680,7 +682,6 @@ select.fld-inp{cursor:pointer}
           <label class="fld-lbl">Other contact number</label>
           <input type="tel" id="em-other-num" class="fld-inp" placeholder="+65 9xxx xxxx">
         </div>
-        <button class="btn-primary full" onclick="Parent.saveEmergency()">Save Contacts</button>
       </div>
 
       <!-- Tab: Profile -->
@@ -694,7 +695,6 @@ select.fld-inp{cursor:pointer}
           <label class="fld-lbl">Picture</label>
           <div class="emoji-grid light-emojis" id="p-emojis"></div>
         </div>
-        <button class="btn-primary full" onclick="Parent.saveProfile()">Save Profile</button>
         <div class="sec-title" style="margin-top:8px">🔐 Change PIN</div>
         <div class="fld-group">
           <label class="fld-lbl">New PIN (4 digits)</label>
@@ -708,6 +708,12 @@ select.fld-inp{cursor:pointer}
       </div>
 
     </div><!-- /scroll-area -->
+
+    <!-- Sticky Save footer — always visible above keyboard -->
+    <div class="p-footer hidden" id="p-footer">
+      <button class="btn-primary full" id="p-save-btn" onclick="Parent.saveTab()">Save</button>
+    </div>
+
   </div><!-- /parent-main-view -->
 
   <!-- Destination modal -->
@@ -1632,6 +1638,7 @@ const Parent = {
     buildEmojiGrid('p-emojis', _parentEmoji, e => { _parentEmoji = e; });
 
     Parent.renderDestList();
+    Parent._activeTab = 'destinations';
     Parent.tab(document.querySelector('.ptab[data-tab="destinations"]'), 'destinations');
   },
 
@@ -1661,6 +1668,20 @@ const Parent = {
     btn.classList.add('active');
     document.querySelectorAll('.ptab-content').forEach(c => c.classList.add('hidden'));
     document.getElementById(`tab-${id}`).classList.remove('hidden');
+    Parent._activeTab = id;
+    // Destinations uses its own modal save — hide footer there
+    const footer = document.getElementById('p-footer');
+    footer.classList.toggle('hidden', id === 'destinations');
+    // Update button label per tab
+    const labels = { api:'Save', emergency:'Save Contacts', profile:'Save Profile' };
+    document.getElementById('p-save-btn').textContent = labels[id] || 'Save';
+  },
+
+  saveTab() {
+    const t = Parent._activeTab || 'api';
+    if      (t === 'api')       Parent.saveAPI();
+    else if (t === 'emergency') Parent.saveEmergency();
+    else if (t === 'profile')   Parent.saveProfile();
   },
 
   openDestModal(idx = -1) {
