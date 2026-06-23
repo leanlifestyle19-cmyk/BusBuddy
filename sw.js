@@ -1,6 +1,6 @@
 // BusBuddy Service Worker
 // ⚠️ DEPLOY CHECKLIST: Bump CACHE name every time index.html changes
-const CACHE = 'bb-v3';
+const CACHE = 'bb-v4';
 
 // Never cache these — they must go to the network
 const BYPASS = [
