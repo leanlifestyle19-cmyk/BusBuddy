@@ -654,6 +654,15 @@ select.fld-inp{cursor:pointer}
           <div class="fld-lbl">Google Gemini API Key</div>
           <input type="password" id="api-key" class="fld-inp" placeholder="Paste your Gemini API key here">
           <a href="https://aistudio.google.com/apikey" target="_blank" class="guide-link">Get a free key at Google AI Studio →</a>
+          <div class="fld-lbl" style="margin-top:6px">Model</div>
+          <select id="api-model" class="fld-inp">
+            <option value="gemini-2.0-flash">gemini-2.0-flash (recommended)</option>
+            <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite</option>
+            <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+            <option value="gemini-1.5-flash-latest">gemini-1.5-flash-latest</option>
+            <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+          </select>
+          <div class="sec-desc" style="margin-top:2px">If you get a 404 error, try a different model — key access varies.</div>
           <div class="sec-desc" style="margin-top:2px">⚠️ Stored on this device only. Don't share your device with untrusted users.</div>
         </div>
         <div class="api-box">
@@ -956,13 +965,13 @@ const API = {
   },
 
   async aiChat(contents, system) {
-    const { geminiKey } = Store.cfg();
+    const { geminiKey, geminiModel } = Store.cfg();
     if (!geminiKey) return null;
-    // Guard: empty contents causes API 400
     if (!contents.length) return null;
+    const model = geminiModel || 'gemini-2.0-flash';
     try {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -987,11 +996,12 @@ const API = {
   },
 
   async visionBus(b64, mimeType) {
-    const { geminiKey } = Store.cfg();
+    const { geminiKey, geminiModel } = Store.cfg();
     if (!geminiKey) return null;
+    const model = geminiModel || 'gemini-2.0-flash';
     try {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1570,9 +1580,10 @@ If lost or unsure: suggest "Call Mum or Dad".`;
     // API error — show status so parent can diagnose
     if (typeof reply === 'string' && reply.startsWith('__err')) {
       const status = reply.replace('__err','');
-      const msg = status === '400' ? 'API key issue (400). Check the key in Settings → API Setup.'
-                : status === '403' ? 'API key rejected (403). Make sure it is a Google AI Studio key.'
-                : `AI error (${status}). Check your Gemini key in Settings.`;
+      const msg = status === '400' ? 'Bad request (400). Re-enter your Gemini key in Settings → API Setup.'
+                : status === '403' ? 'Key rejected (403). Make sure it is a Google AI Studio key, not a Cloud key.'
+                : status === '404' ? 'Model not found (404). Go to Settings → API Setup and try a different model (e.g. gemini-2.0-flash).'
+                : `AI error (${status}). Try a different model in Settings → API Setup.`;
       AIChat.aiSay(`⚠️ ${msg}`, ['← Back to my places', '🆘 I Need Help']);
       return;
     }
@@ -1655,8 +1666,9 @@ const Parent = {
     const em  = Store.em();
     const pro = Store.profile();
 
-    document.getElementById('api-key').value   = cfg.geminiKey || '';
-    document.getElementById('api-proxy').value = cfg.ltaProxy     || '';
+    document.getElementById('api-key').value   = cfg.geminiKey   || '';
+    document.getElementById('api-model').value = cfg.geminiModel || 'gemini-2.0-flash';
+    document.getElementById('api-proxy').value = cfg.ltaProxy    || '';
     document.getElementById('em-mum').value    = em.mum       || '';
     document.getElementById('em-dad').value    = em.dad       || '';
     document.getElementById('em-other-name').value = em.otherName || '';
@@ -1793,8 +1805,9 @@ const Parent = {
 
   saveAPI() {
     Store.setCfg({
-      geminiKey: document.getElementById('api-key').value.trim(),
-      ltaProxy:  document.getElementById('api-proxy').value.trim(),
+      geminiKey:   document.getElementById('api-key').value.trim(),
+      geminiModel: document.getElementById('api-model').value,
+      ltaProxy:    document.getElementById('api-proxy').value.trim(),
     });
     UI.toast('API settings saved ✓');
   },
